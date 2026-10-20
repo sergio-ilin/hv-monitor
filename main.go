@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "embed"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -37,14 +38,59 @@ type VMInfo struct {
 	StaticIPStatus string   `json:"static_ip_status"` // "active", "dropped", "none"
 }
 
+type BackupItem struct {
+	ID        string  `json:"id"`
+	VMName    string  `json:"vm_name"`
+	Type      string  `json:"type"` // "project" or "vm"
+	Filename  string  `json:"filename"`
+	SizeMB    float64 `json:"size_mb"`
+	CreatedAt string  `json:"created_at"`
+	Path      string  `json:"path"`
+}
+
+type JobStatus struct {
+	ID        string `json:"id"`
+	VMName    string `json:"vm_name"`
+	Type      string `json:"type"`
+	Status    string `json:"status"` // "running", "completed", "error"
+	Message   string `json:"message"`
+	StartedAt string `json:"started_at"`
+}
+
 type IPStore struct {
 	sync.RWMutex
 	path string
 	data map[string]string // vmName -> IP
 }
 
-var ipStore = &IPStore{
-	data: make(map[string]string),
+var (
+	ipStore = &IPStore{data: make(map[string]string)}
+
+	activeJobsMu sync.RWMutex
+	activeJobs   = make(map[string]*JobStatus)
+)
+
+func setJob(id, vm, jobType, status, msg string) {
+	activeJobsMu.Lock()
+	defer activeJobsMu.Unlock()
+	activeJobs[id] = &JobStatus{
+		ID:        id,
+		VMName:    vm,
+		Type:      jobType,
+		Status:    status,
+		Message:   msg,
+		StartedAt: time.Now().Format("15:04:05"),
+	}
+}
+
+func getActiveJobs() []*JobStatus {
+	activeJobsMu.RLock()
+	defer activeJobsMu.RUnlock()
+	var list []*JobStatus
+	for _, j := range activeJobs {
+		list = append(list, j)
+	}
+	return list
 }
 
 func initIPStore() {
@@ -89,6 +135,18 @@ func (s *IPStore) All() map[string]string {
 		res[k] = v
 	}
 	return res
+}
+
+func getBackupsDir() string {
+	exe, err := os.Executable()
+	base := "C:\\tools\\hv-monitor"
+	if err == nil {
+		base = filepath.Dir(exe)
+	}
+	dir := filepath.Join(base, "backups")
+	os.MkdirAll(filepath.Join(dir, "projects"), 0755)
+	os.MkdirAll(filepath.Join(dir, "vms"), 0755)
+	return dir
 }
 
 const psScript = `
@@ -180,11 +238,8 @@ func applyVMStaticIP(vmName, ip, cidr string) error {
 	if cidr == "" {
 		cidr = "24"
 	}
-
-	// 1. Ensure host gateway 10.10.10.1 is present
 	_ = restoreHostGateway()
 
-	// 2. Configure inside Linux VM via multipass
 	script := fmt.Sprintf(`sudo bash -c '
 cat << "EOF" > /etc/systemd/system/static-ip.service
 [Unit]
@@ -212,7 +267,6 @@ systemctl restart static-ip.service
 		return fmt.Errorf("%s (%w)", strings.TrimSpace(string(out)), err)
 	}
 
-	// 3. Save to local IP store
 	_ = ipStore.Set(vmName, ip)
 	return nil
 }
@@ -243,13 +297,11 @@ func getVMs() ([]VMInfo, error) {
 		}
 	}
 
-	// Populate static IP status from persistent store
 	for i := range list {
 		configured := ipStore.Get(list[i].Name)
 		list[i].ConfiguredIP = configured
 
 		if configured == "" {
-			// Check if any detected IP looks like 10.10.10.x
 			for _, ip := range list[i].IPs {
 				if strings.HasPrefix(ip, "10.10.10.") {
 					list[i].ConfiguredIP = ip
@@ -262,7 +314,6 @@ func getVMs() ([]VMInfo, error) {
 				list[i].StaticIPStatus = "none"
 			}
 		} else {
-			// Check if configured IP is currently detected in IPs list
 			found := false
 			for _, ip := range list[i].IPs {
 				if ip == configured {
@@ -284,6 +335,201 @@ func getVMs() ([]VMInfo, error) {
 
 	return list, nil
 }
+
+// ----------------- BACKUP ENGINE -----------------
+
+func backupProjectAndDB(vmName string) (string, error) {
+	timestamp := time.Now().Format("20060102_150405")
+	script := fmt.Sprintf(`
+VM_NAME="%s"
+TIMESTAMP="%s"
+STAGE_DIR="/tmp/hv_backup_${TIMESTAMP}"
+mkdir -p "$STAGE_DIR/database" "$STAGE_DIR/project"
+
+# 1. Detect and dump database from containers or host
+DB_STATUS="none"
+MYSQL_CONTAINER=$(docker ps --format '{{.Names}}' 2>/dev/null | grep -iE 'mysql|mariadb|db' | head -n 1 || true)
+POSTGRES_CONTAINER=$(docker ps --format '{{.Names}}' 2>/dev/null | grep -iE 'postgres|psql' | head -n 1 || true)
+
+if [ -n "$MYSQL_CONTAINER" ]; then
+    PASS=$(docker inspect "$MYSQL_CONTAINER" --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep -iE '^MYSQL_ROOT_PASSWORD=' | head -n 1 | cut -d= -f2 || true)
+    if [ -z "$PASS" ]; then
+        PASS=$(docker inspect "$MYSQL_CONTAINER" --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep -iE '^MYSQL_PASSWORD=' | head -n 1 | cut -d= -f2 || true)
+    fi
+    USER="root"
+    if [ -n "$PASS" ]; then
+        docker exec "$MYSQL_CONTAINER" mysqldump -u "$USER" -p"$PASS" --all-databases > "$STAGE_DIR/database/mysql_all_databases.sql" 2>/dev/null || true
+    else
+        docker exec "$MYSQL_CONTAINER" mysqldump --all-databases > "$STAGE_DIR/database/mysql_all_databases.sql" 2>/dev/null || true
+    fi
+    if [ -s "$STAGE_DIR/database/mysql_all_databases.sql" ]; then
+        DB_STATUS="mysql:$MYSQL_CONTAINER"
+    fi
+elif [ -n "$POSTGRES_CONTAINER" ]; then
+    docker exec "$POSTGRES_CONTAINER" pg_dumpall -U postgres > "$STAGE_DIR/database/postgres_all_databases.sql" 2>/dev/null || true
+    if [ -s "$STAGE_DIR/database/postgres_all_databases.sql" ]; then
+        DB_STATUS="postgres:$POSTGRES_CONTAINER"
+    fi
+fi
+
+# Fallback: check for docker volumes data
+if [ "$DB_STATUS" = "none" ]; then
+    for vdir in /var/lib/docker/volumes/*data*/_data; do
+        if [ -d "$vdir" ]; then
+            mkdir -p "$STAGE_DIR/database/volume_data"
+            cp -r "$vdir"/* "$STAGE_DIR/database/volume_data/" 2>/dev/null || true
+            DB_STATUS="volume:$vdir"
+            break
+        fi
+    done
+fi
+
+# 2. Detect project in /home/ubuntu or /var/www
+PROJECT_DIR=""
+for dir in /home/ubuntu/* /var/www/*; do
+    if [ -d "$dir" ] && [ "$(basename "$dir")" != "snap" ] && [ "$(basename "$dir")" != "html" ]; then
+        PROJECT_DIR="$dir"
+        break
+    fi
+done
+
+if [ -n "$PROJECT_DIR" ]; then
+    PARENT=$(dirname "$PROJECT_DIR")
+    NAME=$(basename "$PROJECT_DIR")
+    tar -czf "$STAGE_DIR/project/source_code.tar.gz" -C "$PARENT" --exclude="node_modules" --exclude=".git" --exclude="vendor" --exclude="cache" "$NAME" 2>/dev/null || true
+fi
+
+echo "vm_name: $VM_NAME" > "$STAGE_DIR/backup_info.txt"
+echo "timestamp: $TIMESTAMP" >> "$STAGE_DIR/backup_info.txt"
+echo "database_source: $DB_STATUS" >> "$STAGE_DIR/backup_info.txt"
+echo "project_source: $PROJECT_DIR" >> "$STAGE_DIR/backup_info.txt"
+
+FINAL_TAR="/tmp/${VM_NAME}_project_${TIMESTAMP}.tar.gz"
+tar -czf "$FINAL_TAR" -C "$STAGE_DIR" .
+rm -rf "$STAGE_DIR"
+echo "BACKUP_READY:$FINAL_TAR"
+`, vmName, timestamp)
+
+	b64 := base64.StdEncoding.EncodeToString([]byte(script))
+	cmd := exec.Command("multipass", "exec", vmName, "--", "bash", "-c", fmt.Sprintf("echo %s | base64 -d | bash", b64))
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("backup execution failed: %s (%w)", strings.TrimSpace(string(out)), err)
+	}
+
+	outStr := string(out)
+	idx := strings.Index(outStr, "BACKUP_READY:")
+	if idx == -1 {
+		return "", fmt.Errorf("backup failed to produce archive: %s", outStr)
+	}
+	remoteTar := strings.TrimSpace(outStr[idx+len("BACKUP_READY:"):])
+
+	backupsDir := getBackupsDir()
+	localTarName := fmt.Sprintf("%s_project_%s.tar.gz", vmName, timestamp)
+	localTarPath := filepath.Join(backupsDir, "projects", localTarName)
+
+	transferCmd := exec.Command("multipass", "transfer", fmt.Sprintf("%s:%s", vmName, remoteTar), localTarPath)
+	transferCmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	if err := transferCmd.Run(); err != nil {
+		return "", fmt.Errorf("failed to transfer backup to host: %w", err)
+	}
+
+	cleanCmd := exec.Command("multipass", "exec", vmName, "--", "rm", "-f", remoteTar)
+	cleanCmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	_ = cleanCmd.Run()
+
+	return localTarPath, nil
+}
+
+func backupFullVM(vmName string) (string, error) {
+	timestamp := time.Now().Format("20060102_150405")
+	backupsDir := getBackupsDir()
+	exportPath := filepath.Join(backupsDir, "vms", fmt.Sprintf("%s_vm_%s", vmName, timestamp))
+	os.MkdirAll(exportPath, 0755)
+
+	psCmd := fmt.Sprintf("Export-VM -Name '%s' -Path '%s'", vmName, exportPath)
+	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", psCmd)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("Hyper-V export failed: %s (%w)", strings.TrimSpace(string(out)), err)
+	}
+
+	return exportPath, nil
+}
+
+func listBackups() ([]BackupItem, error) {
+	backupsDir := getBackupsDir()
+	var items []BackupItem
+
+	// 1. Projects
+	projDir := filepath.Join(backupsDir, "projects")
+	if entries, err := os.ReadDir(projDir); err == nil {
+		for _, e := range entries {
+			if !e.IsDir() && strings.HasSuffix(e.Name(), ".tar.gz") {
+				info, _ := e.Info()
+				sizeMB := float64(0)
+				modTime := ""
+				if info != nil {
+					sizeMB = float64(info.Size()) / (1024 * 1024)
+					modTime = info.ModTime().Format("2006-01-02 15:04:05")
+				}
+				parts := strings.Split(e.Name(), "_")
+				vmName := parts[0]
+
+				items = append(items, BackupItem{
+					ID:        e.Name(),
+					VMName:    vmName,
+					Type:      "project",
+					Filename:  e.Name(),
+					SizeMB:    sizeMB,
+					CreatedAt: modTime,
+					Path:      filepath.Join(projDir, e.Name()),
+				})
+			}
+		}
+	}
+
+	// 2. Full VMs
+	vmDir := filepath.Join(backupsDir, "vms")
+	if entries, err := os.ReadDir(vmDir); err == nil {
+		for _, e := range entries {
+			if e.IsDir() {
+				info, _ := e.Info()
+				modTime := ""
+				if info != nil {
+					modTime = info.ModTime().Format("2006-01-02 15:04:05")
+				}
+				parts := strings.Split(e.Name(), "_")
+				vmName := parts[0]
+				fullPath := filepath.Join(vmDir, e.Name())
+
+				var totalSize int64
+				filepath.Walk(fullPath, func(_ string, f os.FileInfo, _ error) error {
+					if f != nil && !f.IsDir() {
+						totalSize += f.Size()
+					}
+					return nil
+				})
+
+				items = append(items, BackupItem{
+					ID:        e.Name(),
+					VMName:    vmName,
+					Type:      "vm",
+					Filename:  e.Name(),
+					SizeMB:    float64(totalSize) / (1024 * 1024),
+					CreatedAt: modTime,
+					Path:      fullPath,
+				})
+			}
+		}
+	}
+
+	return items, nil
+}
+
+// ----------------- HANDLERS -----------------
 
 func handleAction(w http.ResponseWriter, r *http.Request) {
 	action := r.URL.Query().Get("action")
@@ -335,7 +581,7 @@ func launchAppWindow(url string) {
 	if browser != "" {
 		userData := filepath.Join(os.TempDir(), "hv-monitor-profile")
 		appArg := fmt.Sprintf("--app=%s", url)
-		sizeArg := "--window-size=1140,760"
+		sizeArg := "--window-size=1180,780"
 		profileArg := fmt.Sprintf("--user-data-dir=%s", userData)
 		appIdArg := "--app-id=HVMonitor"
 
@@ -352,6 +598,7 @@ func launchAppWindow(url string) {
 func main() {
 	ensureElevated()
 	initIPStore()
+	getBackupsDir() // ensure directories exist
 
 	port := "18288"
 	url := "http://127.0.0.1:" + port
@@ -443,7 +690,7 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
 
-	// Restore All IPs (Host Gateway + All Running VMs)
+	// Restore All IPs
 	http.HandleFunc("/api/network/restore-all", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = restoreHostGateway()
@@ -464,6 +711,99 @@ func main() {
 			"status":   "ok",
 			"restored": restored,
 		})
+	})
+
+	// Backups API
+	http.HandleFunc("/api/backups", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		items, err := listBackups()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+		json.NewEncoder(w).Encode(items)
+	})
+
+	http.HandleFunc("/api/backup/jobs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(getActiveJobs())
+	})
+
+	http.HandleFunc("/api/backup/project", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		name := r.URL.Query().Get("name")
+		if name == "" {
+			http.Error(w, "missing VM name", 400)
+			return
+		}
+
+		jobID := fmt.Sprintf("proj_%s_%d", name, time.Now().Unix())
+		setJob(jobID, name, "project", "running", "Creating Project & Database dump...")
+
+		go func() {
+			path, err := backupProjectAndDB(name)
+			if err != nil {
+				setJob(jobID, name, "project", "error", err.Error())
+			} else {
+				setJob(jobID, name, "project", "completed", fmt.Sprintf("Saved to %s", filepath.Base(path)))
+			}
+		}()
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"job_id": jobID,
+			"status": "started",
+		})
+	})
+
+	http.HandleFunc("/api/backup/vm", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		name := r.URL.Query().Get("name")
+		if name == "" {
+			http.Error(w, "missing VM name", 400)
+			return
+		}
+
+		jobID := fmt.Sprintf("vm_%s_%d", name, time.Now().Unix())
+		setJob(jobID, name, "vm", "running", "Exporting Full Hyper-V VM image...")
+
+		go func() {
+			path, err := backupFullVM(name)
+			if err != nil {
+				setJob(jobID, name, "vm", "error", err.Error())
+			} else {
+				setJob(jobID, name, "vm", "completed", fmt.Sprintf("Exported to %s", filepath.Base(path)))
+			}
+		}()
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"job_id": jobID,
+			"status": "started",
+		})
+	})
+
+	http.HandleFunc("/api/backup/open-folder", func(w http.ResponseWriter, r *http.Request) {
+		dir := getBackupsDir()
+		exec.Command("explorer.exe", dir).Start()
+		w.Write([]byte(`{"status":"ok"}`))
+	})
+
+	http.HandleFunc("/api/backup/delete", func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Query().Get("path")
+		backupsDir := getBackupsDir()
+		cleanPath := filepath.Clean(path)
+		cleanBase := filepath.Clean(backupsDir)
+
+		if !strings.HasPrefix(cleanPath, cleanBase) || cleanPath == cleanBase {
+			http.Error(w, "invalid path", 400)
+			return
+		}
+
+		if err := os.RemoveAll(cleanPath); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		w.Write([]byte(`{"status":"ok"}`))
 	})
 
 	http.HandleFunc("/api/action", handleAction)

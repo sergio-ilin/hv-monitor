@@ -32,6 +32,10 @@ When running Linux development virtual machines on Windows via **Hyper-V** or **
 
 - **📊 Live Real-Time Dashboard:** Displays running machines, real-time CPU utilization %, RAM allocation bars, uptime, and detected IP addresses (auto-refreshes every 3 seconds).
 - **⚙️ Static IP Management:** Assign and persist custom static IPs (e.g., `10.10.10.X/24`) to any virtual machine with automatic `systemd` service generation.
+- **📦 Dual Backup Engine:**
+  - **⚡ Project & DB Smart Backup:** Automatically discovers project code in `/home/ubuntu` or `/var/www`, detects running MySQL/PostgreSQL databases, runs clean SQL dumps (`mysqldump`/`pg_dumpall`), strips `node_modules` and git cache, and transfers a lean archive (`~20MB`) to Windows in ~2 seconds.
+  - **🖥️ Full Hyper-V VM Export:** Full disaster recovery using native `Export-VM` (complete VHDX virtual disk image + hardware configuration).
+  - **📂 Integrated Backups Manager:** Track archive sizes, dates, and open the backups repository directly in Windows Explorer.
 - **⚡ One-Click Network Recovery:** 
   - Restores the host gateway (`10.10.10.1`) on `vEthernet (Default Switch)` if dropped.
   - Dedicated **`⚡ Restore All IPs`** button to re-inject static routes into all running Linux instances simultaneously without rebooting.

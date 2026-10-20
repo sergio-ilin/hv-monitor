@@ -42,7 +42,7 @@
     }
 
     .container {
-      max-width: 1140px;
+      max-width: 1160px;
       margin: 0 auto;
     }
 
@@ -115,7 +115,7 @@
       border-radius: 8px;
       font-size: 13px;
       outline: none;
-      width: 200px;
+      width: 180px;
       transition: all 0.2s;
     }
     .search-input:focus {
@@ -147,6 +147,16 @@
     .btn-restore-all:hover {
       background: linear-gradient(135deg, rgba(6, 182, 212, 0.35), rgba(59, 130, 246, 0.4));
       box-shadow: 0 0 16px rgba(6, 182, 212, 0.25);
+    }
+
+    .btn-backups {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.25));
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      color: #c4b5fd;
+    }
+    .btn-backups:hover {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.35), rgba(59, 130, 246, 0.4));
+      box-shadow: 0 0 16px rgba(139, 92, 246, 0.25);
     }
 
     .btn-warning {
@@ -193,6 +203,22 @@
       font-size: 22px;
       font-weight: 800;
       letter-spacing: -0.5px;
+    }
+
+    /* Active Jobs Banner */
+    #jobs-bar {
+      display: none;
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      border-radius: 10px;
+      padding: 10px 18px;
+      margin-bottom: 18px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #93c5fd;
+      align-items: center;
+      justify-content: space-between;
+      animation: pulseAlert 2s infinite;
     }
 
     /* VM Cards */
@@ -329,7 +355,7 @@
       font-weight: 600;
     }
 
-    /* Actions on card: only 3 clean buttons */
+    /* Actions on card */
     .vm-actions {
       display: flex;
       align-items: center;
@@ -339,7 +365,7 @@
       background: #1e293b;
       border: 1px solid var(--card-border);
       color: var(--text);
-      padding: 7px 13px;
+      padding: 7px 12px;
       border-radius: 8px;
       font-size: 12px;
       font-weight: 600;
@@ -358,13 +384,21 @@
     .btn-action.ip-config:hover {
       background: rgba(6, 182, 212, 0.25);
     }
+    .btn-action.btn-backup {
+      background: rgba(139, 92, 246, 0.12);
+      border-color: rgba(139, 92, 246, 0.35);
+      color: #c4b5fd;
+    }
+    .btn-action.btn-backup:hover {
+      background: rgba(139, 92, 246, 0.25);
+    }
     .btn-action.danger:hover {
       background: rgba(239, 68, 68, 0.2);
       border-color: var(--danger);
       color: var(--danger);
     }
 
-    /* Modal */
+    /* Modals */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -383,9 +417,12 @@
       border-radius: 16px;
       padding: 26px 30px;
       width: 100%;
-      max-width: 480px;
+      max-width: 520px;
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
       animation: modalSlide 0.2s ease-out;
+    }
+    .modal-card.large {
+      max-width: 760px;
     }
     @keyframes modalSlide {
       from { opacity: 0; transform: translateY(12px) scale(0.97); }
@@ -441,6 +478,83 @@
       margin-top: 24px;
     }
 
+    /* Backup Choice Cards inside VM Backup Modal */
+    .backup-options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+    .backup-opt-card {
+      background: #1e293b;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+      transition: all 0.2s;
+    }
+    .backup-opt-card:hover {
+      border-color: rgba(59, 130, 246, 0.4);
+      background: #243042;
+    }
+    .backup-opt-title {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .backup-opt-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .backup-opt-meta {
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #38bdf8;
+    }
+
+    /* Backups Manager Table */
+    .backup-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      font-size: 13px;
+    }
+    .backup-table th {
+      text-align: left;
+      padding: 8px 12px;
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .backup-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .backup-type-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .backup-type-project {
+      background: rgba(6, 182, 212, 0.15);
+      color: #22d3ee;
+      border: 1px solid rgba(6, 182, 212, 0.3);
+    }
+    .backup-type-vm {
+      background: rgba(139, 92, 246, 0.15);
+      color: #c4b5fd;
+      border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+
     .toast {
       position: fixed;
       bottom: 24px;
@@ -469,12 +583,20 @@
         grid-template-columns: 1fr;
         gap: 16px;
       }
+      .backup-options-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
 
 <div class="container">
+  <div id="jobs-bar">
+    <span id="jobs-msg">⏳ Backup in progress...</span>
+    <span id="jobs-meta" style="font-size: 11px; font-family: 'JetBrains Mono';"></span>
+  </div>
+
   <header>
     <div class="title-group">
       <img src="/icon.png" class="app-logo" alt="HV Logo">
@@ -491,6 +613,9 @@
       <input type="text" id="search" class="search-input" placeholder="Search by name or IP...">
       <button class="btn btn-restore-all" onclick="restoreAllIPs()" title="Restore Host Gateway and all VM static IPs">
         ⚡ Restore All IPs
+      </button>
+      <button class="btn btn-backups" onclick="openBackupsManager()" id="btn-header-backups">
+        📦 Backups (<span id="backups-count">0</span>)
       </button>
       <button class="btn" onclick="fetchData()">🔄 Refresh</button>
       <button class="btn btn-danger" onclick="exitApp()">✕ Close</button>
@@ -523,8 +648,8 @@
   </div>
 </div>
 
-<!-- Modal for IP Settings with Restore IP Button -->
-<div id="ip-modal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+<!-- Modal 1: IP Settings -->
+<div id="ip-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('ip-modal')">
   <div class="modal-card">
     <div class="modal-title">
       <span>⚙️ Static IP Configuration</span>
@@ -543,7 +668,7 @@
       <input type="text" id="modal-vm-cidr" class="form-input" value="24">
     </div>
     <div class="modal-actions">
-      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn" onclick="closeModal('ip-modal')">Cancel</button>
       <button class="btn btn-warning" id="btn-modal-restore" onclick="modalRestoreCurrentIP()" title="Re-apply the static IP to eth0 without rebooting">
         ⚡ Restore IP
       </button>
@@ -554,16 +679,108 @@
   </div>
 </div>
 
+<!-- Modal 2: Create Backup for specific VM -->
+<div id="vm-backup-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('vm-backup-modal')">
+  <div class="modal-card">
+    <div class="modal-title">
+      <span>📦 Create Backup — <span id="backup-target-name"></span></span>
+    </div>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+      Select the backup strategy based on your recovery requirements:
+    </p>
+
+    <div class="backup-options-grid">
+      <!-- Option 1: Project & DB -->
+      <div class="backup-opt-card">
+        <div>
+          <div class="backup-opt-title" style="color: #67e8f9;">
+            ⚡ Project & DB
+          </div>
+          <div class="backup-opt-desc">
+            Dumps MySQL / Postgres database to SQL and packages project source code (excluding node_modules/git).
+          </div>
+        </div>
+        <div>
+          <div class="backup-opt-meta">Speed: ~2 sec • Size: ~20 MB</div>
+          <button class="btn btn-restore-all" style="width: 100%; justify-content: center; margin-top: 10px;" id="btn-start-proj-bk" onclick="startProjectBackup()">
+            ⚡ Backup Project & DB
+          </button>
+        </div>
+      </div>
+
+      <!-- Option 2: Full VM Export -->
+      <div class="backup-opt-card">
+        <div>
+          <div class="backup-opt-title" style="color: #c4b5fd;">
+            🖥️ Full Hyper-V VM
+          </div>
+          <div class="backup-opt-desc">
+            Live exports complete virtual machine with VHDX virtual disk image and Hyper-V hardware settings.
+          </div>
+        </div>
+        <div>
+          <div class="backup-opt-meta">Speed: ~30 sec • Size: Full VHDX</div>
+          <button class="btn btn-backups" style="width: 100%; justify-content: center; margin-top: 10px;" id="btn-start-vm-bk" onclick="startVMBackup()">
+            🖥️ Export Full VM
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top: 20px;">
+      <button class="btn" onclick="closeModal('vm-backup-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 3: Backups Manager (Repository) -->
+<div id="backups-manager-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('backups-manager-modal')">
+  <div class="modal-card large">
+    <div class="modal-title" style="justify-content: space-between;">
+      <span style="display: flex; align-items: center; gap: 8px;">📦 Backups Repository</span>
+      <button class="btn btn-restore-all" onclick="openBackupsFolder()">📂 Open in Explorer</button>
+    </div>
+
+    <div style="max-height: 400px; overflow-y: auto;">
+      <table class="backup-table">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Machine</th>
+            <th>Filename</th>
+            <th>Size</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="backups-table-body">
+          <tr>
+            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">
+              Loading backups...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="modal-actions" style="justify-content: space-between; align-items: center;">
+      <span id="backups-total-size" style="font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono';"></span>
+      <button class="btn" onclick="closeModal('backups-manager-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast"></div>
 
 <script>
   let cachedVMs = [];
+  let currentTargetVM = '';
 
   function showToast(msg) {
     const t = document.getElementById('toast');
     t.innerText = msg;
     t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2500);
+    setTimeout(() => t.classList.remove('show'), 2800);
   }
 
   async function exitApp() {
@@ -576,6 +793,11 @@
     navigator.sendBeacon('/api/exit');
   });
 
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+
+  /* Gateway functions */
   async function checkGateway() {
     try {
       const res = await fetch('/api/network/gateway');
@@ -616,6 +838,7 @@
     }
   }
 
+  /* IP Modal */
   function openIPModal(vmName, currentIP) {
     document.getElementById('modal-vm-name').value = vmName;
     document.getElementById('modal-vm-ip').value = currentIP || '10.10.10.';
@@ -632,17 +855,13 @@
     setTimeout(() => document.getElementById('modal-vm-ip').focus(), 100);
   }
 
-  function closeModal() {
-    document.getElementById('ip-modal').classList.remove('open');
-  }
-
   async function modalRestoreCurrentIP() {
     const name = document.getElementById('modal-vm-name').value;
     showToast('Restoring static IP for ' + name + '...');
     try {
       await fetch('/api/network/restore-vm-ip?name=' + encodeURIComponent(name));
       showToast('Static IP restored for ' + name + '!');
-      closeModal();
+      closeModal('ip-modal');
       setTimeout(fetchData, 1000);
     } catch(e) {
       showToast('Failed to restore VM IP');
@@ -671,7 +890,7 @@
       });
       if (res.ok) {
         showToast('Static IP ' + ip + ' applied and persisted for ' + name + '!');
-        closeModal();
+        closeModal('ip-modal');
         setTimeout(fetchData, 1200);
       } else {
         const err = await res.json();
@@ -685,6 +904,139 @@
     }
   }
 
+  /* ---------------- BACKUP SYSTEM ---------------- */
+  function openVMBackupModal(vmName) {
+    currentTargetVM = vmName;
+    document.getElementById('backup-target-name').innerText = vmName;
+    document.getElementById('vm-backup-modal').classList.add('open');
+  }
+
+  async function startProjectBackup() {
+    const name = currentTargetVM;
+    closeModal('vm-backup-modal');
+    showToast('Starting Project & Database backup for ' + name + '...');
+    try {
+      const res = await fetch('/api/backup/project?name=' + encodeURIComponent(name), { method: 'POST' });
+      const data = await res.json();
+      if (data.status === 'started') {
+        showToast('Project backup started for ' + name);
+        checkJobs();
+      }
+    } catch(e) {
+      showToast('Failed to trigger project backup');
+    }
+  }
+
+  async function startVMBackup() {
+    const name = currentTargetVM;
+    closeModal('vm-backup-modal');
+    showToast('Starting Full Hyper-V VM export for ' + name + ' (this runs in background)...');
+    try {
+      const res = await fetch('/api/backup/vm?name=' + encodeURIComponent(name), { method: 'POST' });
+      const data = await res.json();
+      if (data.status === 'started') {
+        showToast('Full VM export started for ' + name);
+        checkJobs();
+      }
+    } catch(e) {
+      showToast('Failed to trigger VM export');
+    }
+  }
+
+  async function checkJobs() {
+    try {
+      const res = await fetch('/api/backup/jobs');
+      const jobs = await res.json();
+      const bar = document.getElementById('jobs-bar');
+      const runningJob = jobs.find(j => j.status === 'running');
+
+      if (runningJob) {
+        bar.style.display = 'flex';
+        document.getElementById('jobs-msg').innerText = '⏳ ' + runningJob.VMName + ': ' + runningJob.Message;
+        document.getElementById('jobs-meta').innerText = 'Started: ' + runningJob.StartedAt;
+      } else {
+        bar.style.display = 'none';
+      }
+    } catch(e) {}
+  }
+
+  async function updateBackupsCount() {
+    try {
+      const res = await fetch('/api/backups');
+      const list = await res.json();
+      document.getElementById('backups-count').innerText = Array.isArray(list) ? list.length : 0;
+    } catch(e) {}
+  }
+
+  async function openBackupsManager() {
+    document.getElementById('backups-manager-modal').classList.add('open');
+    loadBackupsTable();
+  }
+
+  async function loadBackupsTable() {
+    const tbody = document.getElementById('backups-table-body');
+    try {
+      const res = await fetch('/api/backups');
+      const list = await res.json();
+
+      if (!Array.isArray(list) || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">No backups created yet</td></tr>';
+        document.getElementById('backups-total-size').innerText = 'Total Size: 0 MB';
+        return;
+      }
+
+      let totalMB = 0;
+      tbody.innerHTML = list.map(item => {
+        totalMB += item.size_mb;
+        const isProj = item.type === 'project';
+        const typeBadge = isProj
+          ? '<span class="backup-type-badge backup-type-project">⚡ Project & DB</span>'
+          : '<span class="backup-type-badge backup-type-vm">🖥️ Full VM</span>';
+
+        const sizeStr = item.size_mb >= 1024 
+          ? (item.size_mb / 1024).toFixed(2) + ' GB'
+          : item.size_mb.toFixed(1) + ' MB';
+
+        return `
+          <tr>
+            <td>${typeBadge}</td>
+            <td style="font-weight: 700;">${item.vm_name}</td>
+            <td style="font-family: 'JetBrains Mono'; font-size: 12px; color: #cbd5e1;">${item.filename}</td>
+            <td style="font-family: 'JetBrains Mono'; font-weight: 600;">${sizeStr}</td>
+            <td style="color: var(--text-muted); font-size: 12px;">${item.created_at}</td>
+            <td>
+              <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteBackup('${encodeURIComponent(item.path)}')">🗑️</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      const totalStr = totalMB >= 1024 ? (totalMB / 1024).toFixed(2) + ' GB' : totalMB.toFixed(1) + ' MB';
+      document.getElementById('backups-total-size').innerText = 'Total Backups Size: ' + totalStr;
+    } catch(e) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--danger);">Failed to load backups</td></tr>';
+    }
+  }
+
+  async function openBackupsFolder() {
+    try { await fetch('/api/backup/open-folder', { method: 'POST' }); } catch(e){}
+  }
+
+  async function deleteBackup(path) {
+    if (!confirm('Are you sure you want to delete this backup?')) return;
+    try {
+      const res = await fetch('/api/backup/delete?path=' + path, { method: 'DELETE' });
+      if (res.ok) {
+        showToast('Backup deleted');
+        loadBackupsTable();
+        updateBackupsCount();
+      }
+    } catch(e) {
+      showToast('Failed to delete backup');
+    }
+  }
+
+  /* Actions */
   async function triggerAction(action, name) {
     showToast('Sending ' + action + ' command for ' + name + '...');
     try {
@@ -698,6 +1050,9 @@
   async function fetchData() {
     try {
       checkGateway();
+      checkJobs();
+      updateBackupsCount();
+
       const res = await fetch('/api/vms');
       const data = await res.json();
       if (Array.isArray(data)) {
@@ -794,6 +1149,7 @@
 
           <div class="vm-actions">
             <button class="btn-action ip-config" title="Configure or restore static IP" onclick="openIPModal('${vm.name}', '${vm.configured_ip || ''}')">⚙️ IP</button>
+            <button class="btn-action btn-backup" title="Create backup of this VM" onclick="openVMBackupModal('${vm.name}')">📦 Backup</button>
             ${isRunning 
               ? `
                 <button class="btn-action" title="Full VM Reboot" onclick="triggerAction('restart', '${vm.name}')">Restart</button>
