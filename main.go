@@ -655,6 +655,87 @@ func loadBackupSettings() BackupSettings {
 	return s
 }
 
+func syncWindowsScheduledTask(st BackupSettings) {
+	exe, err := os.Executable()
+	if err != nil {
+		return
+	}
+
+	taskName := "HVMonitor_AutoBackup"
+
+	if !st.Enabled {
+		cmd := exec.Command("schtasks", "/delete", "/tn", taskName, "/f")
+		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+		_ = cmd.Run()
+		return
+	}
+
+	var sc, mo string
+	if st.IntervalHours >= 24 {
+		sc = "daily"
+		mo = "1"
+	} else {
+		sc = "hourly"
+		mo = fmt.Sprintf("%d", st.IntervalHours)
+		if st.IntervalHours <= 0 {
+			mo = "4"
+		}
+	}
+
+	taskRun := fmt.Sprintf("\"%s\" -backup-now", exe)
+	cmd := exec.Command("schtasks", "/create", "/tn", taskName,
+		"/tr", taskRun,
+		"/sc", sc,
+		"/mo", mo,
+		"/rl", "HIGHEST",
+		"/f")
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	_ = cmd.Run()
+}
+
+func runHeadlessBackup() {
+	st := loadBackupSettings()
+	if !st.Enabled {
+		return
+	}
+
+	backupsDir := getBackupsDir()
+	logFile := filepath.Join(backupsDir, "cron.log")
+
+	appendLog := func(msg string) {
+		f, err := os.OpenFile(logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		if err == nil {
+			timestamp := time.Now().Format("2006-01-02 15:04:05")
+			fmt.Fprintf(f, "[%s] %s\n", timestamp, msg)
+			f.Close()
+		}
+	}
+
+	appendLog("=== Starting scheduled headless backup ===")
+	vms, err := getVMs()
+	if err != nil {
+		appendLog(fmt.Sprintf("ERROR: failed to get VMs: %v", err))
+		return
+	}
+
+	successCount := 0
+	for _, vm := range vms {
+		if vm.State == "Running" {
+			appendLog(fmt.Sprintf("Backing up VM: %s", vm.Name))
+			path, err := backupProjectAndDB(vm.Name)
+			if err != nil {
+				appendLog(fmt.Sprintf("ERROR backing up %s: %v", vm.Name, err))
+			} else {
+				appendLog(fmt.Sprintf("SUCCESS backing up %s -> %s", vm.Name, filepath.Base(path)))
+				successCount++
+			}
+		}
+	}
+
+	enforceRetention(st.RetentionCount)
+	appendLog(fmt.Sprintf("Completed: %d VMs backed up. Retention enforced (keep %d).", successCount, st.RetentionCount))
+}
+
 func saveBackupSettings(s BackupSettings) error {
 	dir := getBackupsDir()
 	path := filepath.Join(filepath.Dir(dir), "backup_settings.json")
@@ -662,7 +743,11 @@ func saveBackupSettings(s BackupSettings) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, raw, 0644)
+	err = os.WriteFile(path, raw, 0644)
+	if err == nil {
+		syncWindowsScheduledTask(s)
+	}
+	return err
 }
 
 func enforceRetention(retentionCount int) {
@@ -790,7 +875,12 @@ func ensureElevated() {
 	exePtr, _ := syscall.UTF16PtrFromString(exe)
 	dirPtr, _ := syscall.UTF16PtrFromString(filepath.Dir(exe))
 
-	ret, _, _ := shellExecuteW.Call(0, uintptr(unsafe.Pointer(verb)), uintptr(unsafe.Pointer(exePtr)), 0, uintptr(unsafe.Pointer(dirPtr)), 1)
+	var argsPtr *uint16
+	if len(os.Args) > 1 {
+		argsPtr, _ = syscall.UTF16PtrFromString(strings.Join(os.Args[1:], " "))
+	}
+
+	ret, _, _ := shellExecuteW.Call(0, uintptr(unsafe.Pointer(verb)), uintptr(unsafe.Pointer(exePtr)), uintptr(unsafe.Pointer(argsPtr)), uintptr(unsafe.Pointer(dirPtr)), 1)
 	if ret > 32 {
 		os.Exit(0)
 	}
@@ -1246,6 +1336,15 @@ func launchAppWindow(url string) {
 }
 
 func main() {
+	for _, arg := range os.Args[1:] {
+		if arg == "-backup-now" || arg == "--backup-now" {
+			ensureElevated()
+			initIPStore()
+			runHeadlessBackup()
+			return
+		}
+	}
+
 	ensureElevated()
 	initIPStore()
 	initSyncStore()

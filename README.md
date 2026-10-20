@@ -46,7 +46,8 @@ When running Linux development virtual machines on Windows via **Hyper-V** or **
   - **⚡ Project & DB Smart Backup:** Automatically discovers project code, dumps MySQL/PostgreSQL databases to SQL, strips `node_modules` and git cache, and transfers a lean archive (`~20MB`) to Windows in ~2 seconds.
   - **🚀 One-Click Deploy / Restore:** Select any historical project backup and click **`Deploy / Restore`** to unpack project files and import the database SQL dump back into the VM automatically.
   - **🖥️ Full Hyper-V VM Export:** Full disaster recovery using native `Export-VM` (complete VHDX virtual disk image + hardware configuration).
-  - **⏱️ Automated Scheduler & Retention:** Background scheduler running every 1h, 4h, 8h, or 24h with configurable retention (auto-purging older backups).
+  - **⏱️ Automated Scheduler & Retention:** Integrated with native **Windows Task Scheduler** to execute silent background backups every 1h, 4h, 8h, or 24h even when the GUI window is closed (consumes 0% RAM between runs).
+  - **📜 Background Run Logging:** All automated headless backup events, databases dumped, and retention purges are logged to `backups/cron.log`.
 - **⚡ One-Click Network Recovery:** 
   - Restores the host gateway (`10.10.10.1`) on `vEthernet (Default Switch)` if dropped.
   - Dedicated **`⚡ Restore All IPs`** button to re-inject static routes into all running Linux instances simultaneously without rebooting.
