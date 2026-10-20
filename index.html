@@ -371,39 +371,49 @@
     .vm-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-    }
-    .vm-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
-      padding: 18px 22px;
-      display: grid;
-      grid-template-columns: 280px 1fr 220px;
-      align-items: center;
-      gap: 24px;
-      backdrop-filter: blur(12px);
-      transition: all 0.2s ease;
-    }
-    .vm-card:hover {
-      border-color: var(--card-hover);
-      box-shadow: 0 6px 20px -4px rgba(0, 0, 0, 0.3);
-    }
-    .vm-identity {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .vm-title {
-      font-size: 16px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
       gap: 8px;
     }
-    .vm-sub {
-      font-size: 12px;
-      color: var(--text-muted);
+    .vm-row {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 12px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(12px);
+      transition: all 0.15s ease;
+    }
+    .vm-row:hover {
+      border-color: rgba(59, 130, 246, 0.35);
+      background: rgba(17, 24, 39, 0.95);
+    }
+    .vm-row-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .vm-row-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .vm-row-state {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .state-running {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .state-stopped {
+      background: rgba(148, 163, 184, 0.12);
+      color: #94a3b8;
+      border: 1px solid rgba(148, 163, 184, 0.25);
     }
     .status-dot {
       width: 8px;
@@ -932,7 +942,6 @@
     }
 
     @media (max-width: 950px) {
-      .vm-card { grid-template-columns: 1fr; gap: 16px; }
       .backup-top-grid { grid-template-columns: 1fr; }
       .sync-grid { grid-template-columns: 1fr; }
       .analytics-grid { grid-template-columns: 1fr; }
@@ -1010,17 +1019,14 @@
     </div>
   </div>
 
-  <!-- ==================== TAB 2: MACHINES & CONTAINERS ==================== -->
+  <!-- ==================== TAB 2: MACHINES ==================== -->
   <div id="tab-vms" class="tab-page">
     <div class="vms-top-bar">
       <div>
         <div style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-          <span>🖥️ Virtual Machines & Containers</span>
+          <span>🖥️ Virtual Machines</span>
           <span id="vms-summary-pill" class="gateway-pill healthy" style="font-size: 11px;">Loading...</span>
         </div>
-        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
-          Power controls, network status, and operational management for Hyper-V and Multipass instances.
-        </p>
       </div>
 
       <div class="filter-pills">
@@ -1030,7 +1036,7 @@
       </div>
     </div>
 
-    <!-- VM Control Cards List -->
+    <!-- Minimal VM Control Rows -->
     <div class="vm-list" id="vm-control-list">
       <div style="text-align: center; padding: 40px; color: var(--text-muted);">
         Loading virtual machines...
@@ -1552,52 +1558,25 @@
 
     container.innerHTML = filtered.map(vm => {
       const isRunning = vm.state === 'Running';
-      const ipList = (vm.ips && vm.ips.length > 0)
-        ? vm.ips.map(ip => {
-            const isStatic = ip.startsWith('10.10.10.');
-            return `<span class="ip-badge ${isStatic ? 'is-static' : ''}" title="Click to copy IP" onclick="navigator.clipboard.writeText('${ip}'); showToast('Copied ${ip}!')">${isStatic ? '⚡ ' : ''}${ip}</span>`;
-          }).join('')
-        : '<span style="font-size:12px; color: #64748b;">no IP</span>';
-
-      const ramGB = (vm.ram_mb / 1024).toFixed(1);
-      const ramPercent = Math.min(100, Math.round((vm.ram_mb / 8192) * 100));
 
       return `
-        <div class="vm-card">
-          <div class="vm-identity">
-            <div class="vm-title">
-              <span class="status-dot status-${vm.state}"></span>
-              ${vm.name}
-            </div>
-            <div class="vm-sub">Uptime: ${vm.uptime}</div>
-            <div class="ip-badges">${ipList}</div>
-          </div>
-
-          <div class="metric-group">
-            <div class="metric-row">
-              <span class="metric-name">CPU</span>
-              <div class="bar-wrap">
-                <div class="bar-fill bar-cpu" style="width: ${vm.cpu}%"></div>
-              </div>
-              <span class="metric-num">${vm.cpu}%</span>
-            </div>
-            <div class="metric-row">
-              <span class="metric-name">RAM</span>
-              <div class="bar-wrap">
-                <div class="bar-fill bar-ram" style="width: ${ramPercent}%"></div>
-              </div>
-              <span class="metric-num">${ramGB} GB</span>
-            </div>
+        <div class="vm-row">
+          <div class="vm-row-info">
+            <span class="status-dot status-${vm.state}"></span>
+            <span class="vm-row-name">${vm.name}</span>
+            <span class="vm-row-state ${isRunning ? 'state-running' : 'state-stopped'}">
+              ${isRunning ? 'Running' : 'Stopped'}
+            </span>
           </div>
 
           <div class="vm-actions">
             ${isRunning 
               ? `
-                <button class="btn btn-warning" style="padding: 7px 14px;" title="Full VM Reboot" onclick="triggerAction('restart', '${vm.name}')">🔄 Restart</button>
-                <button class="btn btn-danger" style="padding: 7px 14px;" title="Power off VM" onclick="triggerAction('stop', '${vm.name}')">⏹ Stop</button>
+                <button class="btn btn-warning" style="padding: 7px 16px; font-size: 12px;" title="Restart ${vm.name}" onclick="triggerAction('restart', '${vm.name}')">🔄 Restart</button>
+                <button class="btn btn-danger" style="padding: 7px 16px; font-size: 12px;" title="Power off ${vm.name}" onclick="triggerAction('stop', '${vm.name}')">⏹ Stop</button>
               `
               : `
-                <button class="btn btn-restore-all" style="padding: 7px 18px;" onclick="triggerAction('start', '${vm.name}')">▶ Start</button>
+                <button class="btn btn-restore-all" style="padding: 7px 20px; font-size: 12px;" title="Power on ${vm.name}" onclick="triggerAction('start', '${vm.name}')">▶ Start</button>
               `
             }
           </div>

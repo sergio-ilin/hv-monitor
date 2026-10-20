@@ -32,7 +32,7 @@ When running Linux development virtual machines on Windows via **Hyper-V** or **
 
 - **📑 5-Tab Workspace Interface:**
   - **📊 Analytics:** Pure telemetry dashboard with cluster-wide CPU/RAM metrics and per-machine Canvas trendline charts (no action buttons, no IP clutter).
-  - **🖥️ Machines & Containers:** Operational view with power states, IP badges, quick resource meters, filter pills (`All`, `Running`, `Stopped`), and one-click power controls (`Restart`, `Stop`, `Start`).
+  - **🖥️ Machines:** Minimalist power management view with status badges, filters (`All`, `Running`, `Stopped`), and one-click power controls (`Restart`, `Stop`, `Start`) without distracting charts or IP clutter.
   - **🌐 IP Management:** Dedicated network table for managing, assigning, and persisting static IPv4 addresses (`10.10.10.X`) with host gateway auto-repair.
   - **📦 Backups & Recovery:** Full-page backup repository with automated scheduling, retention policies, and one-click deployment.
   - **🚀 Code Sync & Hot-Deploy:** Real-time Windows host folder watcher and 1-click code synchronizer to push modified files directly into Linux VMs without touching container dependencies, `.env`, or volumes.
