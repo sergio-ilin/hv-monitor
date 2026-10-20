@@ -88,10 +88,10 @@ namespace HyperVMonitor
 
             private void EnsureBackendRunning()
             {
-                for (int attempt = 0; attempt < 8; attempt++) {
+                for (int attempt = 0; attempt < 15; attempt++) {
                     try {
                         var req = (HttpWebRequest)WebRequest.Create(ServerUrl + "/api/system/info");
-                        req.Timeout = 600;
+                        req.Timeout = 800;
                         using (var resp = req.GetResponse()) {
                             return; // Backend is responding!
                         }
@@ -99,16 +99,19 @@ namespace HyperVMonitor
                         if (attempt == 0) {
                             string daemonPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "hv-monitor.exe");
                             if (File.Exists(daemonPath)) {
-                                var psi = new ProcessStartInfo {
-                                    FileName = daemonPath,
-                                    Arguments = "-daemon",
-                                    WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory,
-                                    UseShellExecute = true,
-                                    Verb = "runas"
-                                };
                                 try {
+                                    var psi = new ProcessStartInfo {
+                                        FileName = daemonPath,
+                                        Arguments = "-daemon",
+                                        WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory,
+                                        UseShellExecute = true
+                                    };
                                     Process.Start(psi);
-                                } catch {}
+                                } catch {
+                                    try {
+                                        Process.Start(daemonPath, "-daemon");
+                                    } catch {}
+                                }
                             }
                         }
                         Thread.Sleep(500);
