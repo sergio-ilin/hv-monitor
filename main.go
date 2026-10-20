@@ -72,8 +72,11 @@ type BackupItem struct {
 type JobStatus struct {
 	ID        string `json:"id"`
 	VMName    string `json:"vm_name"`
-	Type      string `json:"type"`
+	TargetID  string `json:"target_id,omitempty"`
+	Type      string `json:"type"`   // "backup", "export", "restore", "sync"
 	Status    string `json:"status"` // "running", "completed", "error"
+	Stage     string `json:"stage,omitempty"`
+	Progress  int    `json:"progress"` // 0 to 100
 	Message   string `json:"message"`
 	StartedAt string `json:"started_at"`
 }
@@ -130,15 +133,38 @@ var (
 )
 
 func setJob(id, vm, jobType, status, msg string) {
+	setJobProgress(id, vm, "", jobType, status, "", 0, msg)
+}
+
+func setJobProgress(id, vm, targetID, jobType, status, stage string, progress int, msg string) {
 	activeJobsMu.Lock()
 	defer activeJobsMu.Unlock()
-	activeJobs[id] = &JobStatus{
-		ID:        id,
-		VMName:    vm,
-		Type:      jobType,
-		Status:    status,
-		Message:   msg,
-		StartedAt: time.Now().Format("15:04:05"),
+	j, ok := activeJobs[id]
+	if !ok {
+		j = &JobStatus{
+			ID:        id,
+			VMName:    vm,
+			TargetID:  targetID,
+			Type:      jobType,
+			StartedAt: time.Now().Format("15:04:05"),
+		}
+		activeJobs[id] = j
+	}
+	j.Status = status
+	j.Stage = stage
+	j.Progress = progress
+	j.Message = msg
+	if targetID != "" {
+		j.TargetID = targetID
+	}
+
+	if status == "completed" || status == "error" {
+		go func(jobID string) {
+			time.Sleep(45 * time.Second)
+			activeJobsMu.Lock()
+			delete(activeJobs, jobID)
+			activeJobsMu.Unlock()
+		}(id)
 	}
 }
 
@@ -500,7 +526,9 @@ func getChangedFiles(target SyncTarget) []ChangedFile {
 	return changed
 }
 
-func pushCodeToVM(target SyncTarget) (int, error) {
+func pushCodeToVM(jobID string, target SyncTarget) (int, error) {
+	setJobProgress(jobID, target.VMName, target.ID, "sync", "running", "scanning", 15, fmt.Sprintf("Scanning %s...", target.Name))
+
 	info, err := os.Stat(target.LocalPath)
 	if err != nil || !info.IsDir() {
 		return 0, fmt.Errorf("local folder does not exist: %s", target.LocalPath)
@@ -592,6 +620,8 @@ func pushCodeToVM(target SyncTarget) (int, error) {
 		return 0, fmt.Errorf("no files to sync after applying excludes")
 	}
 
+	setJobProgress(jobID, target.VMName, target.ID, "sync", "running", "transferring", 45, fmt.Sprintf("Transferring %d files to %s...", fileCount, target.VMName))
+
 	remoteTar := fmt.Sprintf("/tmp/hv_sync_%s_%d.tar.gz", target.ID, time.Now().Unix())
 	transferCmd := exec.Command("multipass", "transfer", tmpTarPath, fmt.Sprintf("%s:%s", target.VMName, remoteTar))
 	transferCmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
@@ -600,9 +630,15 @@ func pushCodeToVM(target SyncTarget) (int, error) {
 		return 0, fmt.Errorf("multipass transfer failed: %s (%w)", strings.TrimSpace(string(out)), err)
 	}
 
+	setJobProgress(jobID, target.VMName, target.ID, "sync", "running", "extracting", 75, fmt.Sprintf("Extracting %d files on %s...", fileCount, target.VMName))
+
 	remoteDest := target.RemotePath
 	if remoteDest == "" {
 		remoteDest = fmt.Sprintf("/home/ubuntu/%s", target.Name)
+	}
+
+	if target.PostSyncCmd != "" {
+		setJobProgress(jobID, target.VMName, target.ID, "sync", "running", "executing", 88, fmt.Sprintf("Running post-sync command on %s...", target.VMName))
 	}
 
 	remoteScript := fmt.Sprintf(`
@@ -635,6 +671,7 @@ fi
 	}
 
 	_ = syncStore.UpdateLastSync(target.ID, fileCount)
+	setJobProgress(jobID, target.VMName, target.ID, "sync", "completed", "done", 100, fmt.Sprintf("Synced %d files to %s", fileCount, target.VMName))
 	return fileCount, nil
 }
 
@@ -1885,14 +1922,14 @@ func main() {
 		}
 
 		jobID := fmt.Sprintf("sync_%s_%d", target.ID, time.Now().Unix())
-		setJob(jobID, target.VMName, "sync", "running", fmt.Sprintf("Syncing %s code to %s:%s...", target.Name, target.VMName, target.RemotePath))
+		setJobProgress(jobID, target.VMName, target.ID, "sync", "running", "queued", 5, fmt.Sprintf("Starting sync for %s...", target.Name))
 
 		go func() {
-			count, err := pushCodeToVM(target)
+			count, err := pushCodeToVM(jobID, target)
 			if err != nil {
-				setJob(jobID, target.VMName, "sync", "error", err.Error())
+				setJobProgress(jobID, target.VMName, target.ID, "sync", "error", "failed", 0, err.Error())
 			} else {
-				setJob(jobID, target.VMName, "sync", "completed", fmt.Sprintf("Synced %d files to %s:%s", count, target.VMName, target.RemotePath))
+				setJobProgress(jobID, target.VMName, target.ID, "sync", "completed", "done", 100, fmt.Sprintf("Synced %d files to %s", count, target.VMName))
 			}
 		}()
 
@@ -1922,17 +1959,27 @@ func main() {
 		}
 
 		jobID := fmt.Sprintf("sync_all_%d", time.Now().Unix())
-		setJob(jobID, "All VMs", "sync", "running", fmt.Sprintf("Syncing %d modified projects...", len(modifiedTargets)))
+		setJobProgress(jobID, "All VMs", "all", "sync", "running", "batch", 10, fmt.Sprintf("Syncing %d modified projects...", len(modifiedTargets)))
 
 		go func() {
+			jobMap := make(map[string]string)
+			now := time.Now().Unix()
+			for _, t := range modifiedTargets {
+				jobMap[t.ID] = fmt.Sprintf("sync_%s_%d", t.ID, now)
+				setJobProgress(jobMap[t.ID], t.VMName, t.ID, "sync", "running", "queued", 5, fmt.Sprintf("Queued for batch sync..."))
+			}
+
 			successCount := 0
 			for _, t := range modifiedTargets {
-				_, err := pushCodeToVM(t)
+				tJob := jobMap[t.ID]
+				_, err := pushCodeToVM(tJob, t)
 				if err == nil {
 					successCount++
+				} else {
+					setJobProgress(tJob, t.VMName, t.ID, "sync", "error", "failed", 0, err.Error())
 				}
 			}
-			setJob(jobID, "All VMs", "sync", "completed", fmt.Sprintf("Batch sync completed: %d/%d projects updated", successCount, len(modifiedTargets)))
+			setJobProgress(jobID, "All VMs", "all", "sync", "completed", "done", 100, fmt.Sprintf("Batch sync completed: %d/%d projects updated", successCount, len(modifiedTargets)))
 		}()
 
 		json.NewEncoder(w).Encode(map[string]interface{}{

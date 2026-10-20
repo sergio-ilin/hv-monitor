@@ -909,6 +909,91 @@
     .sync-card.is-modified-card {
       border-color: rgba(245, 158, 11, 0.4);
     }
+    .sync-card.is-syncing {
+      border-color: var(--accent);
+      box-shadow: 0 0 16px rgba(59, 130, 246, 0.25);
+      animation: pulseSyncCard 2s ease-in-out infinite;
+    }
+    .sync-card.is-synced {
+      border-color: #10b981;
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.25);
+    }
+    @keyframes pulseSyncCard {
+      0%, 100% {
+        box-shadow: 0 0 8px rgba(59, 130, 246, 0.15);
+      }
+      50% {
+        box-shadow: 0 0 18px rgba(59, 130, 246, 0.38);
+      }
+    }
+    .card-sync-progress {
+      background: var(--code-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 2px;
+      transition: all 0.2s ease;
+    }
+    .sync-progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+    }
+    .sync-progress-stage {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .sync-progress-pct {
+      font-family: 'Geist Mono', 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 11px;
+      color: var(--accent);
+    }
+    .card-progress-track {
+      width: 100%;
+      height: 5px;
+      background: rgba(148, 163, 184, 0.15);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+    }
+    .card-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #10b981);
+      border-radius: 999px;
+      transition: width 0.3s ease-out;
+    }
+    .card-progress-fill.is-error {
+      background: var(--danger);
+    }
+    .sync-progress-msg {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      font-family: 'Geist Mono', 'JetBrains Mono', monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .inline-spinner-sm {
+      width: 11px;
+      height: 11px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
 
     .sync-card-header {
       display: flex;
@@ -1763,6 +1848,8 @@
   let currentVMFilter = 'all';
   let vmHistory = {}; // vmName -> [cpu1, cpu2, ...]
   const MAX_HISTORY = 16;
+  const activeSyncMap = new Map();
+  let syncFastPollInterval = null;
 
   /* Theme & User Profile Management */
   let currentTheme = localStorage.getItem('hv_theme') || 'system';
@@ -2554,8 +2641,25 @@
         ? `<div style="font-size: 11px; color: #a5b4fc; font-family: 'JetBrains Mono'; margin-top: 2px;">⚡ Post-Sync: <code>${target.post_sync_cmd}</code></div>`
         : '';
 
+      const activeState = activeSyncMap.get(target.id);
+      const isSyncingNow = activeState && activeState.status === 'running';
+      const isCompletedNow = activeState && activeState.status === 'completed';
+      const progressDisplay = (isSyncingNow || isCompletedNow) ? 'flex' : 'none';
+      const progressPct = activeState ? (activeState.progress || 0) : 0;
+      let progressStage = 'Ready';
+      if (activeState) {
+        if (activeState.stage === 'scanning') progressStage = 'Scanning modified files...';
+        else if (activeState.stage === 'transferring') progressStage = 'Transferring archive to VM...';
+        else if (activeState.stage === 'extracting') progressStage = 'Extracting archive on VM...';
+        else if (activeState.stage === 'executing') progressStage = 'Running post-sync command...';
+        else if (activeState.stage === 'queued') progressStage = 'Queued in batch...';
+        else if (activeState.stage === 'done') progressStage = '✓ Synced successfully';
+        else progressStage = activeState.stage || 'Syncing...';
+      }
+      const progressMsg = activeState ? (activeState.message || '') : '';
+
       return `
-        <div class="sync-card ${isModified ? 'is-modified-card' : ''}">
+        <div class="sync-card ${isModified ? 'is-modified-card' : ''} ${isSyncingNow ? 'is-syncing' : ''} ${isCompletedNow ? 'is-synced' : ''}" id="sync-card-${target.id}">
           <div class="sync-card-header">
             <div class="sync-card-title">
               <span>🚀</span>
@@ -2585,10 +2689,25 @@
             ${target.latest_mod_time ? `<span>Latest Edit: <b style="color: #fcd34d;">${target.latest_mod_time}</b></span>` : ''}
           </div>
 
+          <!-- In-Card Sync Progress Bar -->
+          <div class="card-sync-progress" id="sync-progress-${target.id}" style="display: ${progressDisplay};">
+            <div class="sync-progress-header">
+              <div class="sync-progress-stage">
+                <span class="inline-spinner-sm" id="sync-spinner-${target.id}" style="${isCompletedNow ? 'display:none;' : ''}"></span>
+                <span class="sync-stage-text" id="sync-stage-${target.id}">${progressStage}</span>
+              </div>
+              <span class="sync-progress-pct" id="sync-pct-${target.id}">${progressPct}%</span>
+            </div>
+            <div class="card-progress-track">
+              <div class="card-progress-fill" id="sync-bar-${target.id}" style="width: ${progressPct}%;"></div>
+            </div>
+            <div class="sync-progress-msg" id="sync-msg-${target.id}">${progressMsg}</div>
+          </div>
+
           <div class="sync-card-actions">
             <div style="display: flex; gap: 8px;">
-              <button class="btn btn-restore-all" style="font-weight: 700; ${isModified ? 'box-shadow: 0 0 14px rgba(16, 185, 129, 0.4);' : ''}" onclick="pushSingleTarget('${target.id}', '${target.name}')">
-                🚀 Push to ${target.vm_name}
+              <button class="btn btn-restore-all" id="btn-push-${target.id}" ${isSyncingNow ? 'disabled' : ''} style="font-weight: 700; ${isModified ? 'box-shadow: 0 0 14px rgba(16, 185, 129, 0.4);' : ''}" onclick="pushSingleTarget('${target.id}', '${target.name}')">
+                ${isSyncingNow ? '<span class="inline-spinner-sm"></span> Syncing...' : (isCompletedNow ? '✓ Synced' : `🚀 Push to ${target.vm_name}`)}
               </button>
               ${target.modified_count > 0 ? `
                 <button class="btn" style="font-size: 11px;" onclick="viewChangedFiles('${target.id}', '${target.name}')">
@@ -2607,37 +2726,144 @@
     }).join('');
   }
 
+  function startSyncFastPolling() {
+    if (!syncFastPollInterval) {
+      syncFastPollInterval = setInterval(checkJobs, 350);
+    }
+  }
+
+  function stopSyncFastPolling() {
+    if (syncFastPollInterval) {
+      clearInterval(syncFastPollInterval);
+      syncFastPollInterval = null;
+    }
+  }
+
   async function pushSingleTarget(id, name) {
-    showToast(`Packaging and pushing ${name} to VM...`);
+    const cardEl = document.getElementById(`sync-card-${id}`);
+    const progressEl = document.getElementById(`sync-progress-${id}`);
+    const spinnerEl = document.getElementById(`sync-spinner-${id}`);
+    const stageEl = document.getElementById(`sync-stage-${id}`);
+    const pctEl = document.getElementById(`sync-pct-${id}`);
+    const barEl = document.getElementById(`sync-bar-${id}`);
+    const msgEl = document.getElementById(`sync-msg-${id}`);
+    const btnPush = document.getElementById(`btn-push-${id}`);
+
+    if (cardEl) {
+      cardEl.classList.add('is-syncing');
+      cardEl.classList.remove('is-synced');
+    }
+    if (progressEl) progressEl.style.display = 'flex';
+    if (spinnerEl) spinnerEl.style.display = 'inline-block';
+    if (barEl) {
+      barEl.classList.remove('is-error');
+      barEl.style.width = '10%';
+    }
+    if (pctEl) pctEl.innerText = '10%';
+    if (stageEl) stageEl.innerText = 'Packaging modified files...';
+    if (msgEl) msgEl.innerText = `Preparing archive for ${name}...`;
+    if (btnPush) {
+      btnPush.disabled = true;
+      btnPush.innerHTML = `<span class="inline-spinner-sm"></span> Syncing...`;
+    }
+
+    activeSyncMap.set(id, { status: 'running', progress: 10, stage: 'scanning', message: `Preparing archive for ${name}...` });
+    startSyncFastPolling();
+
     try {
       const res = await fetch(`/api/sync/push?id=${encodeURIComponent(id)}`, { method: 'POST' });
       if (res.ok) {
-        showToast(`Sync started for ${name}!`);
         checkJobs();
-        setTimeout(() => fetchSyncTargets(false), 2500);
       } else {
         const err = await res.json();
         showToast('Sync error: ' + (err.error || 'Failed'));
+        if (stageEl) stageEl.innerText = '❌ Sync Failed';
+        if (msgEl) msgEl.innerText = err.error || 'Failed';
+        if (barEl) barEl.classList.add('is-error');
+        if (spinnerEl) spinnerEl.style.display = 'none';
+        if (cardEl) cardEl.classList.remove('is-syncing');
+        if (btnPush) {
+          btnPush.disabled = false;
+          btnPush.innerHTML = '⚠️ Retry Push';
+        }
+        activeSyncMap.delete(id);
       }
     } catch(e) {
       showToast('Network error triggering sync');
+      if (stageEl) stageEl.innerText = '❌ Network Error';
+      if (cardEl) cardEl.classList.remove('is-syncing');
+      if (spinnerEl) spinnerEl.style.display = 'none';
+      if (btnPush) {
+        btnPush.disabled = false;
+        btnPush.innerHTML = '⚠️ Retry Push';
+      }
+      activeSyncMap.delete(id);
     }
   }
 
   async function syncAllModifiedProjects() {
-    showToast('Triggering batch sync for all modified projects...');
+    const modified = cachedSyncTargets.filter(t => t.is_modified && t.local_exists);
+    if (modified.length === 0) {
+      showToast('All projects are already up to date!');
+      return;
+    }
+
+    for (const t of modified) {
+      const cardEl = document.getElementById(`sync-card-${t.id}`);
+      const progressEl = document.getElementById(`sync-progress-${t.id}`);
+      const spinnerEl = document.getElementById(`sync-spinner-${t.id}`);
+      const stageEl = document.getElementById(`sync-stage-${t.id}`);
+      const pctEl = document.getElementById(`sync-pct-${t.id}`);
+      const barEl = document.getElementById(`sync-bar-${t.id}`);
+      const msgEl = document.getElementById(`sync-msg-${t.id}`);
+      const btnPush = document.getElementById(`btn-push-${t.id}`);
+
+      if (cardEl) {
+        cardEl.classList.add('is-syncing');
+        cardEl.classList.remove('is-synced');
+      }
+      if (progressEl) progressEl.style.display = 'flex';
+      if (spinnerEl) spinnerEl.style.display = 'inline-block';
+      if (barEl) {
+        barEl.classList.remove('is-error');
+        barEl.style.width = '6%';
+      }
+      if (pctEl) pctEl.innerText = '6%';
+      if (stageEl) stageEl.innerText = 'Queued in batch...';
+      if (msgEl) msgEl.innerText = 'Waiting for worker...';
+      if (btnPush) {
+        btnPush.disabled = true;
+        btnPush.innerHTML = `<span class="inline-spinner-sm"></span> Syncing...`;
+      }
+      activeSyncMap.set(t.id, { status: 'running', progress: 6, stage: 'queued', message: 'Waiting for worker...' });
+    }
+
+    const btnAll = document.getElementById('btn-sync-all');
+    if (btnAll) {
+      btnAll.disabled = true;
+      btnAll.innerHTML = `<span class="inline-spinner-sm"></span> Syncing ${modified.length} Projects...`;
+    }
+
+    startSyncFastPolling();
+
     try {
       const res = await fetch('/api/sync/push-all', { method: 'POST' });
       const data = await res.json();
       if (data.count === 0) {
         showToast('All projects are already up to date!');
       } else {
-        showToast(`Started sync for ${data.count} projects!`);
+        showToast(`Batch sync started for ${data.count} projects!`);
         checkJobs();
-        setTimeout(() => fetchSyncTargets(false), 3000);
       }
     } catch(e) {
       showToast('Failed to trigger batch sync');
+    } finally {
+      if (btnAll) {
+        setTimeout(() => {
+          btnAll.disabled = false;
+          btnAll.innerHTML = `🚀 Push All Modified`;
+        }, 2000);
+      }
     }
   }
 
@@ -2783,21 +3009,136 @@
     pushSingleTarget(currentPreviewTargetId, targetName);
   }
 
+  /* In-Card Sync Progress Manager */
+  function updateSyncCardsProgress(syncJobs) {
+    let anyRunning = false;
+
+    for (const job of syncJobs) {
+      if (!job.target_id || job.target_id === 'all') continue;
+      const targetId = job.target_id;
+
+      const cardEl = document.getElementById(`sync-card-${targetId}`);
+      const progressEl = document.getElementById(`sync-progress-${targetId}`);
+      const spinnerEl = document.getElementById(`sync-spinner-${targetId}`);
+      const stageEl = document.getElementById(`sync-stage-${targetId}`);
+      const pctEl = document.getElementById(`sync-pct-${targetId}`);
+      const barEl = document.getElementById(`sync-bar-${targetId}`);
+      const msgEl = document.getElementById(`sync-msg-${targetId}`);
+      const btnPush = document.getElementById(`btn-push-${targetId}`);
+
+      if (job.status === 'running') {
+        anyRunning = true;
+        activeSyncMap.set(targetId, job);
+
+        if (cardEl) {
+          cardEl.classList.add('is-syncing');
+          cardEl.classList.remove('is-synced');
+        }
+        if (progressEl) progressEl.style.display = 'flex';
+        if (spinnerEl) spinnerEl.style.display = 'inline-block';
+        if (barEl) {
+          barEl.classList.remove('is-error');
+          barEl.style.width = `${Math.max(job.progress, 8)}%`;
+        }
+        if (pctEl) pctEl.innerText = `${job.progress}%`;
+        if (stageEl) {
+          let stageLabel = 'Syncing...';
+          if (job.stage === 'scanning') stageLabel = 'Scanning modified files...';
+          else if (job.stage === 'transferring') stageLabel = 'Transferring archive to VM...';
+          else if (job.stage === 'extracting') stageLabel = 'Extracting archive on VM...';
+          else if (job.stage === 'executing') stageLabel = 'Running post-sync script...';
+          else if (job.stage === 'queued') stageLabel = 'Queued in batch...';
+          else stageLabel = job.stage || 'Syncing...';
+          stageEl.innerText = stageLabel;
+        }
+        if (msgEl) msgEl.innerText = job.message || '';
+        if (btnPush) {
+          btnPush.disabled = true;
+          btnPush.innerHTML = `<span class="inline-spinner-sm"></span> Syncing...`;
+        }
+      } else if (job.status === 'completed') {
+        const prev = activeSyncMap.get(targetId);
+        if (prev && prev.status === 'running') {
+          activeSyncMap.set(targetId, job);
+          if (cardEl) {
+            cardEl.classList.remove('is-syncing');
+            cardEl.classList.add('is-synced');
+          }
+          if (spinnerEl) spinnerEl.style.display = 'none';
+          if (barEl) {
+            barEl.classList.remove('is-error');
+            barEl.style.width = '100%';
+          }
+          if (pctEl) pctEl.innerText = '100%';
+          if (stageEl) stageEl.innerText = '✓ Synced successfully';
+          if (msgEl) msgEl.innerText = job.message || 'All files synced';
+          if (btnPush) {
+            btnPush.disabled = false;
+            btnPush.innerHTML = '✓ Synced';
+            btnPush.style.background = '#10b981';
+            btnPush.style.color = '#fff';
+          }
+
+          setTimeout(() => {
+            activeSyncMap.delete(targetId);
+            if (progressEl) progressEl.style.display = 'none';
+            if (cardEl) cardEl.classList.remove('is-synced');
+            if (btnPush) {
+              const t = cachedSyncTargets.find(x => x.id === targetId);
+              const vm = t ? t.vm_name : 'VM';
+              btnPush.innerHTML = `🚀 Push to ${vm}`;
+              btnPush.style.background = '';
+              btnPush.style.color = '';
+            }
+            fetchSyncTargets(false);
+          }, 2400);
+        }
+      } else if (job.status === 'error') {
+        activeSyncMap.delete(targetId);
+        if (cardEl) cardEl.classList.remove('is-syncing');
+        if (spinnerEl) spinnerEl.style.display = 'none';
+        if (barEl) {
+          barEl.classList.add('is-error');
+          barEl.style.width = '100%';
+        }
+        if (stageEl) stageEl.innerText = '❌ Sync Failed';
+        if (msgEl) msgEl.innerText = job.message || 'Error occurred during sync';
+        if (btnPush) {
+          btnPush.disabled = false;
+          btnPush.innerHTML = '⚠️ Retry Push';
+        }
+      }
+    }
+
+    if (anyRunning) {
+      startSyncFastPolling();
+    } else {
+      stopSyncFastPolling();
+    }
+  }
+
   /* Shared Background Jobs Monitor */
   async function checkJobs() {
     try {
       const res = await fetch('/api/backup/jobs');
       const jobs = await res.json();
       const bar = document.getElementById('jobs-bar');
-      const runningJob = jobs.find(j => j.status === 'running');
 
-      if (runningJob) {
+      // The top notification bar is strictly reserved for cluster backups/exports
+      // File sync tasks are handled in-card!
+      const runningClusterJob = jobs.find(j => j.status === 'running' && j.type !== 'sync');
+
+      if (runningClusterJob) {
         bar.style.display = 'flex';
-        document.getElementById('jobs-msg').innerText = `⏳ ${runningJob.vm_name}: ${runningJob.message}`;
-        document.getElementById('jobs-meta').innerText = `Started: ${runningJob.started_at}`;
+        document.getElementById('jobs-msg').innerText = `⏳ ${runningClusterJob.vm_name}: ${runningClusterJob.message}`;
+        document.getElementById('jobs-meta').innerText = `Started: ${runningClusterJob.started_at}`;
       } else {
         bar.style.display = 'none';
       }
+
+      // Route all sync jobs to per-card progress handler
+      const syncJobs = jobs.filter(j => j.type === 'sync');
+      updateSyncCardsProgress(syncJobs);
     } catch(e) {}
   }
 
