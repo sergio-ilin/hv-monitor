@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -30,6 +31,9 @@ var iconPng []byte
 
 //go:embed manifest.json
 var manifestJson string
+
+//go:embed ShortcutHelper.exe
+var shortcutHelperExe []byte
 
 type VMInfo struct {
 	Name           string   `json:"name"`
@@ -853,9 +857,10 @@ if ($vms.Count -eq 0) { "[]" } else { $vms | ConvertTo-Json -Depth 3 }
 `
 
 var (
-	shell32       = syscall.NewLazyDLL("shell32.dll")
-	isUserAnAdmin = shell32.NewProc("IsUserAnAdmin")
-	shellExecuteW = shell32.NewProc("ShellExecuteW")
+	shell32                                     = syscall.NewLazyDLL("shell32.dll")
+	isUserAnAdmin                               = shell32.NewProc("IsUserAnAdmin")
+	shellExecuteW                               = shell32.NewProc("ShellExecuteW")
+	procSetCurrentProcessExplicitAppUserModelID = shell32.NewProc("SetCurrentProcessExplicitAppUserModelID")
 )
 
 func isElevated() bool {
@@ -1314,18 +1319,61 @@ func findAppBrowser() string {
 	return ""
 }
 
+func initAppUserModelID() {
+	appId, _ := syscall.UTF16PtrFromString("Sergio.HVMonitor")
+	procSetCurrentProcessExplicitAppUserModelID.Call(uintptr(unsafe.Pointer(appId)))
+}
+
+func ensureShortcutAppId() {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return
+	}
+	lnkPath := filepath.Join(home, "Desktop", "Hyper-V Monitor.lnk")
+	if _, err := os.Stat(lnkPath); os.IsNotExist(err) {
+		return
+	}
+
+	helperPath := filepath.Join(os.TempDir(), "HVShortcutHelper.exe")
+	if len(shortcutHelperExe) > 0 {
+		_ = os.WriteFile(helperPath, shortcutHelperExe, 0755)
+		cmd := exec.Command(helperPath, lnkPath, "Sergio.HVMonitor")
+		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+		_ = cmd.Run()
+	}
+}
+
+func checkTaskSchedulerInstalled() bool {
+	cmd := exec.Command("schtasks.exe", "/query", "/tn", "HVMonitor_AutoBackup")
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	return cmd.Run() == nil
+}
+
 func launchAppWindow(url string) {
 	time.Sleep(150 * time.Millisecond)
 
+	ensureShortcutAppId()
+
 	browser := findAppBrowser()
 	if browser != "" {
-		userData := filepath.Join(os.TempDir(), "hv-monitor-profile")
-		appArg := fmt.Sprintf("--app=%s", url)
-		sizeArg := "--window-size=1260,860"
-		profileArg := fmt.Sprintf("--user-data-dir=%s", userData)
-		appIdArg := "--app-id=HVMonitor"
+		userData := filepath.Join(os.Getenv("LOCALAPPDATA"), "HVMonitorProfile")
+		_ = os.MkdirAll(userData, 0755)
 
-		cmd := exec.Command(browser, appArg, sizeArg, profileArg, appIdArg, "--no-first-run", "--no-default-browser-check")
+		appArg := fmt.Sprintf("--app=%s", url)
+		sizeArg := "--window-size=1280,880"
+		profileArg := fmt.Sprintf("--user-data-dir=%s", userData)
+		appIdArg := "--app-id=Sergio.HVMonitor"
+		aumidArg := "--app-user-model-id=Sergio.HVMonitor"
+
+		cmd := exec.Command(browser,
+			appArg,
+			sizeArg,
+			profileArg,
+			appIdArg,
+			aumidArg,
+			"--no-first-run",
+			"--no-default-browser-check",
+		)
 		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 		if err := cmd.Start(); err == nil {
 			return
@@ -1336,6 +1384,8 @@ func launchAppWindow(url string) {
 }
 
 func main() {
+	initAppUserModelID()
+
 	for _, arg := range os.Args[1:] {
 		if arg == "-backup-now" || arg == "--backup-now" {
 			ensureElevated()
@@ -1368,6 +1418,28 @@ func main() {
 	http.HandleFunc("/manifest.json", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/manifest+json")
 		w.Write([]byte(manifestJson))
+	})
+
+	// System / User Information API
+	http.HandleFunc("/api/system/info", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		hostname, _ := os.Hostname()
+		user := os.Getenv("USERNAME")
+		if user == "" {
+			user = "Administrator"
+		}
+
+		info := map[string]interface{}{
+			"username":         user,
+			"hostname":         hostname,
+			"os":               runtime.GOOS + "/" + runtime.GOARCH,
+			"is_elevated":      isElevated(),
+			"version":          "1.4.0",
+			"task_scheduler":   checkTaskSchedulerInstalled(),
+			"backups_path":     getBackupsDir(),
+			"sync_targets_num": len(syncStore.All()),
+		}
+		json.NewEncoder(w).Encode(info)
 	})
 
 	// VM status API

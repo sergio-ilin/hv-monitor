@@ -30,12 +30,20 @@ When running Linux development virtual machines on Windows via **Hyper-V** or **
 
 ## ✨ Features
 
-- **📑 5-Tab Workspace Interface:**
-  - **📊 Analytics:** Pure telemetry dashboard with cluster-wide CPU/RAM metrics and per-machine Canvas trendline charts (no action buttons, no IP clutter).
+- **📑 5-Tab Minimalist Workspace Interface:**
+  - **📊 Analytics:** Pure telemetry dashboard with cluster-wide CPU/RAM metrics and per-machine Canvas sparkline charts (no action buttons, no IP clutter).
   - **🖥️ Machines:** Minimalist power management view with status badges, filters (`All`, `Running`, `Stopped`), and one-click power controls (`Restart`, `Stop`, `Start`) without distracting charts or IP clutter.
   - **🌐 IP Management:** Dedicated network table for managing, assigning, and persisting static IPv4 addresses (`10.10.10.X`) with host gateway auto-repair.
   - **📦 Backups & Recovery:** Full-page backup repository with automated scheduling, retention policies, and one-click deployment.
   - **🚀 Code Sync & Hot-Deploy:** Real-time Windows host folder watcher and 1-click code synchronizer to push modified files directly into Linux VMs without touching container dependencies, `.env`, or volumes.
+- **🎨 Minimalist Typography-First Design & Theme Switcher:**
+  - Modern, readable developer typography stack featuring **Geist Sans**, **Geist Mono**, and **JetBrains Mono**.
+  - High-contrast, clean visual surfaces with zero unnecessary gradients or bloated margins.
+  - Dedicated **User Profile & Environment** section (`👤`) independent of tabs.
+  - Seamless theme toggle: **Light**, **Dark**, and **System** (auto-synchronizing with Windows dark/light OS mode).
+- **📌 Native Windows Taskbar Integration:**
+  - Explicit COM **AppUserModelID** (`Sergio.HVMonitor`) association for both process and shortcut.
+  - Pinning the app to the Windows Taskbar preserves the clean custom icon and shortcut target without defaulting to browser icons.
 - **🚀 Code Sync & Hot-Deploy Engine:**
   - **⚡ Automatic Change Detection:** Recursively inspects project directories on the Windows host and detects modified files compared to the last sync timestamp in milliseconds.
   - **🛡️ Intelligent Exclusions:** Preserves Linux guest environment by automatically filtering out `node_modules`, `vendor`, `.git`, `.env`, `storage/framework`, `storage/logs`, cache, and temporary build files.
@@ -68,7 +76,7 @@ When running Linux development virtual machines on Windows via **Hyper-V** or **
 
 1. Clone the repository:
    ```powershell
-   git clone https://github.com/sergio-ilin/hv-monitor.git
+   git clone https://github.com/itunlimit/hv-monitor.git
    cd hv-monitor
    ```
 

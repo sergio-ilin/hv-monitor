@@ -1,5 +1,6 @@
 # Binaries & compiled artifacts
 *.exe
+!ShortcutHelper.exe
 *.exe~
 *.dll
 *.so
