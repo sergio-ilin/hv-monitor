@@ -730,9 +730,9 @@ POST_CMD="%s"
 
 mkdir -p "$TARGET_DIR" 2>/dev/null || sudo mkdir -p "$TARGET_DIR"
 
-tar -xzf "$ARCHIVE" -C "$TARGET_DIR" --no-same-owner --warning=no-unknown-keyword 2>/dev/null || \
-sudo tar -xzf "$ARCHIVE" -C "$TARGET_DIR" --no-same-owner --warning=no-unknown-keyword 2>/dev/null || \
-tar -xzf "$ARCHIVE" -C "$TARGET_DIR" --no-same-owner || true
+tar -xzmf "$ARCHIVE" -C "$TARGET_DIR" --no-same-owner --warning=no-unknown-keyword 2>/dev/null || \
+sudo tar -xzmf "$ARCHIVE" -C "$TARGET_DIR" --no-same-owner --warning=no-unknown-keyword 2>/dev/null || \
+tar -xzmf "$ARCHIVE" -C "$TARGET_DIR" --no-same-owner || true
 
 rm -f "$ARCHIVE"
 
