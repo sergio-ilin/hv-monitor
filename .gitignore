@@ -1,10 +1,16 @@
 # Binaries & compiled artifacts
 *.exe
 !ShortcutHelper.exe
+!HVWindow.exe
+!Hyper-V Monitor.exe
 *.exe~
 *.dll
+!Microsoft.Web.WebView2.Core.dll
+!Microsoft.Web.WebView2.WinForms.dll
+!WebView2Loader.dll
 *.so
 *.dylib
+scratch_wv/
 
 # Local configs & runtime state
 ip_config.json

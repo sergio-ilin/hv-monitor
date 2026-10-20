@@ -36,6 +36,18 @@ var manifestJson string
 //go:embed ShortcutHelper.exe
 var shortcutHelperExe []byte
 
+//go:embed HVWindow.exe
+var hvWindowExe []byte
+
+//go:embed Microsoft.Web.WebView2.Core.dll
+var wv2CoreDll []byte
+
+//go:embed Microsoft.Web.WebView2.WinForms.dll
+var wv2WinFormsDll []byte
+
+//go:embed WebView2Loader.dll
+var wv2LoaderDll []byte
+
 type VMInfo struct {
 	Name           string   `json:"name"`
 	State          string   `json:"state"`
@@ -1394,6 +1406,19 @@ func ensureShortcutAppId() {
 		return
 	}
 
+	exe, err := os.Executable()
+	if err == nil {
+		dir := filepath.Dir(exe)
+		targetApp := filepath.Join(dir, "Hyper-V Monitor.exe")
+		if _, err := os.Stat(targetApp); err == nil {
+			cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command",
+				fmt.Sprintf(`$s=(New-Object -ComObject WScript.Shell).CreateShortcut('%s'); $s.TargetPath='%s'; $s.WorkingDirectory='%s'; $s.IconLocation='%s,0'; $s.Save()`,
+					lnkPath, targetApp, dir, filepath.Join(dir, "icon.ico")))
+			cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+			_ = cmd.Run()
+		}
+	}
+
 	helperPath := filepath.Join(os.TempDir(), "HVShortcutHelper.exe")
 	if len(shortcutHelperExe) > 0 {
 		_ = os.WriteFile(helperPath, shortcutHelperExe, 0755)
@@ -1409,11 +1434,56 @@ func checkTaskSchedulerInstalled() bool {
 	return cmd.Run() == nil
 }
 
+func ensureNativeGUI() string {
+	exe, err := os.Executable()
+	if err != nil {
+		return ""
+	}
+	dir := filepath.Dir(exe)
+
+	files := []struct {
+		name string
+		data []byte
+	}{
+		{"Hyper-V Monitor.exe", hvWindowExe},
+		{"Microsoft.Web.WebView2.Core.dll", wv2CoreDll},
+		{"Microsoft.Web.WebView2.WinForms.dll", wv2WinFormsDll},
+		{"WebView2Loader.dll", wv2LoaderDll},
+	}
+
+	for _, f := range files {
+		target := filepath.Join(dir, f.name)
+		if len(f.data) > 0 {
+			if _, err := os.Stat(target); os.IsNotExist(err) {
+				_ = os.WriteFile(target, f.data, 0755)
+			}
+		}
+	}
+
+	for _, name := range []string{"Hyper-V Monitor.exe", "HVWindow.exe"} {
+		targetExe := filepath.Join(dir, name)
+		if _, err := os.Stat(targetExe); err == nil {
+			return targetExe
+		}
+	}
+	return ""
+}
+
 func launchAppWindow(url string) {
 	time.Sleep(150 * time.Millisecond)
 
 	ensureShortcutAppId()
 
+	// 1. Prioritize native standalone WebView2 GUI
+	guiExe := ensureNativeGUI()
+	if guiExe != "" {
+		cmd := exec.Command(guiExe)
+		if err := cmd.Start(); err == nil {
+			return
+		}
+	}
+
+	// 2. Fallback to browser app mode
 	browser := findAppBrowser()
 	if browser != "" {
 		userData := filepath.Join(os.Getenv("LOCALAPPDATA"), "HVMonitorProfile")
@@ -1446,12 +1516,16 @@ func launchAppWindow(url string) {
 func main() {
 	initAppUserModelID()
 
+	noBrowser := false
 	for _, arg := range os.Args[1:] {
 		if arg == "-backup-now" || arg == "--backup-now" {
 			ensureElevated()
 			initIPStore()
 			runHeadlessBackup()
 			return
+		}
+		if arg == "-daemon" || arg == "--daemon" || arg == "-headless" || arg == "--headless" {
+			noBrowser = true
 		}
 	}
 
@@ -1894,7 +1968,9 @@ func main() {
 		w.Write([]byte(htmlPage))
 	})
 
-	go launchAppWindow(url)
+	if !noBrowser {
+		go launchAppWindow(url)
+	}
 
 	if err := http.Serve(listener, nil); err != nil {
 		log.Fatalf("Server error: %v", err)
