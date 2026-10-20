@@ -1396,7 +1396,7 @@
 
 <div class="container">
   <div id="jobs-bar">
-    <span id="jobs-msg">⏳ Operation in progress...</span>
+    <span id="jobs-msg">Operation in progress...</span>
     <span id="jobs-meta" style="font-size: 11px; font-family: 'Geist Mono', 'JetBrains Mono';"></span>
   </div>
 
@@ -1591,73 +1591,56 @@
     <div class="backup-top-grid">
       <!-- Schedule Box -->
       <div class="backup-box">
-        <div>
-          <div class="backup-box-title" style="color: #c4b5fd;">
-            <span>⏱️ Automated Backup Scheduler & Retention</span>
-          </div>
-          <p style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">
-            Runs in the background and automatically purges old backups according to retention policy.
-          </p>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div class="backup-box-title">Schedule</div>
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--text-muted);">
+            <input type="checkbox" id="bk-auto-enabled" style="accent-color: var(--accent); width: 14px; height: 14px;">
+            Active
+          </label>
         </div>
 
-        <div>
-          <div class="form-row">
-            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
-              <input type="checkbox" id="bk-auto-enabled" style="accent-color: var(--accent); width: 16px; height: 16px;">
-              Enable Scheduled Backups
-            </label>
+        <div class="form-row" style="margin-top: 4px;">
+          <div style="flex: 1;">
+            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Frequency</div>
+            <select id="bk-interval" class="select-input">
+              <option value="1">Every 1 hour</option>
+              <option value="4" selected>Every 4 hours</option>
+              <option value="8">Every 8 hours</option>
+              <option value="24">Daily (24h)</option>
+            </select>
           </div>
-
-          <div class="form-row" style="margin-top: 10px;">
-            <div style="flex: 1;">
-              <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">FREQUENCY</div>
-              <select id="bk-interval" class="select-input">
-                <option value="1">Every 1 hour</option>
-                <option value="4" selected>Every 4 hours</option>
-                <option value="8">Every 8 hours</option>
-                <option value="24">Every 24 hours (Daily)</option>
-              </select>
-            </div>
-            <div style="flex: 1;">
-              <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">RETENTION (AUTO-DELETE)</div>
-              <select id="bk-retention" class="select-input">
-                <option value="5">Keep last 5 copies</option>
-                <option value="10" selected>Keep last 10 copies</option>
-                <option value="20">Keep last 20 copies</option>
-              </select>
-            </div>
+          <div style="flex: 1;">
+            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Retention</div>
+            <select id="bk-retention" class="select-input">
+              <option value="5">Keep 5 copies</option>
+              <option value="10" selected>Keep 10 copies</option>
+              <option value="20">Keep 20 copies</option>
+            </select>
           </div>
         </div>
 
-        <button class="btn btn-restore-all" style="width: 100%; justify-content: center;" onclick="saveScheduleSettings()">
-          💾 Save Schedule & Retention Policy
+        <button class="btn btn-restore-all" style="width: 100%; justify-content: center; height: 32px; font-size: 12px;" onclick="saveScheduleSettings()">
+          Save Schedule
         </button>
       </div>
 
       <!-- Manual Backup Box -->
       <div class="backup-box">
-        <div>
-          <div class="backup-box-title" style="color: #67e8f9;">
-            <span>⚡ Manual Backup Trigger</span>
-          </div>
-          <p style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">
-            Execute an immediate backup of project code + database, or export the entire Hyper-V VM disk.
-          </p>
-        </div>
+        <div class="backup-box-title">Create Backup</div>
 
         <div>
-          <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">SELECT TARGET MACHINE</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Machine</div>
           <select id="bk-manual-vm" class="select-input" style="width: 100%;">
-            <option value="">Loading machines...</option>
+            <option value="">Select virtual machine...</option>
           </select>
         </div>
 
-        <div style="display: flex; gap: 10px;">
-          <button class="btn btn-restore-all" style="flex: 1; justify-content: center;" onclick="triggerManualProjectBackup()">
-            ⚡ Project & DB (~2s)
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-restore-all" style="flex: 1; justify-content: center; height: 32px; font-size: 12px;" onclick="triggerManualProjectBackup()">
+            Project & DB
           </button>
-          <button class="btn btn-backups" style="flex: 1; justify-content: center;" onclick="triggerManualVMExport()">
-            🖥️ Full Hyper-V VM
+          <button class="btn btn-backups" style="flex: 1; justify-content: center; height: 32px; font-size: 12px;" onclick="triggerManualVMExport()">
+            Full VM
           </button>
         </div>
       </div>
@@ -1665,13 +1648,17 @@
 
     <!-- Backups Table -->
     <div class="backup-repo-card">
-      <div class="repo-header">
-        <div style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
-          <span>📦 Backup History & Recovery</span>
-          <span id="repo-total-size" style="font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono'; font-weight: 500;"></span>
+      <div class="repo-header" style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="font-size: 15px; font-weight: 600; color: var(--text);">Backups</div>
+          <span id="repo-total-size" style="font-size: 12px; color: var(--text-muted); font-family: 'Geist Mono', 'JetBrains Mono', monospace;"></span>
         </div>
-        <div style="display: flex; gap: 8px;">
-          <button class="btn btn-restore-all" onclick="openBackupsFolder()">📂 Open in Windows Explorer</button>
+
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <div class="filter-pills" id="backups-vm-filter-pills">
+            <button class="filter-pill active" onclick="setBackupVMFilter('all')">All</button>
+          </div>
+          <button class="btn btn-restore-all" onclick="openBackupsFolder()" style="height: 30px; padding: 0 12px; font-size: 12px;">Open Folder</button>
         </div>
       </div>
 
@@ -1679,15 +1666,14 @@
         <thead>
           <tr>
             <th>Type</th>
-            <th>Machine</th>
-            <th>Archive Filename</th>
+            <th>VM</th>
             <th>Size</th>
-            <th>Created At</th>
-            <th style="text-align: right;">Recovery & Actions</th>
+            <th>Created</th>
+            <th style="text-align: right;">Actions</th>
           </tr>
         </thead>
         <tbody id="backups-repo-body">
-          <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 24px;">Loading backups repository...</td></tr>
+          <tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 24px;">Loading backups...</td></tr>
         </tbody>
       </table>
     </div>
@@ -2485,6 +2471,9 @@
     }
   }
 
+  let cachedBackupsList = [];
+  let currentBackupVMFilter = 'all';
+
   async function loadBackupsTable() {
     const tbody = document.getElementById('backups-repo-body');
     try {
@@ -2492,51 +2481,105 @@
       const list = await res.json();
 
       if (!Array.isArray(list) || list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">No backups found in repository</td></tr>';
+        cachedBackupsList = [];
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">No backups found</td></tr>';
         document.getElementById('repo-total-size').innerText = '(0 MB)';
+        renderBackupVMPills([]);
         return;
       }
 
+      cachedBackupsList = list;
+
       let totalMB = 0;
-      tbody.innerHTML = list.map(item => {
-        totalMB += item.size_mb;
-        const isProj = item.type === 'project';
-        const typeBadge = isProj
-          ? '<span class="backup-type-badge backup-type-project">⚡ Project & DB</span>'
-          : '<span class="backup-type-badge backup-type-vm">🖥️ Full VM</span>';
-
-        const sizeStr = item.size_mb >= 1024 
-          ? (item.size_mb / 1024).toFixed(2) + ' GB'
-          : item.size_mb.toFixed(1) + ' MB';
-
-        return `
-          <tr>
-            <td>${typeBadge}</td>
-            <td style="font-weight: 700; font-size: 14px;">${item.vm_name}</td>
-            <td style="font-family: 'JetBrains Mono'; font-size: 12px; color: #cbd5e1;">${item.filename}</td>
-            <td style="font-family: 'JetBrains Mono'; font-weight: 600;">${sizeStr}</td>
-            <td style="color: var(--text-muted); font-size: 12px;">${item.created_at}</td>
-            <td style="text-align: right;">
-              <div style="display: inline-flex; gap: 8px;">
-                ${isProj ? `<button class="btn btn-restore-deploy" onclick="deployBackup('${item.vm_name}', '${encodeURIComponent(item.path)}')">🚀 Deploy / Restore</button>` : ''}
-                <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteBackup('${encodeURIComponent(item.path)}')">🗑️</button>
-              </div>
-            </td>
-          </tr>
-        `;
-      }).join('');
-
+      list.forEach(item => { totalMB += item.size_mb; });
       const totalStr = totalMB >= 1024 ? (totalMB / 1024).toFixed(2) + ' GB' : totalMB.toFixed(1) + ' MB';
-      document.getElementById('repo-total-size').innerText = `(Total: ${totalStr})`;
+      document.getElementById('repo-total-size').innerText = `(${totalStr})`;
+
+      const vmNames = Array.from(new Set(list.map(i => i.vm_name).filter(Boolean))).sort();
+      renderBackupVMPills(vmNames);
+      renderBackupsRows();
     } catch(e) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--danger);">Failed to load backups</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--danger);">Failed to load backups</td></tr>';
     }
   }
 
-  async function deployBackup(vmName, encodedPath) {
-    if (!confirm(`Deploy and restore this backup into VM "${vmName}"?\n\nThis will unpack project source files and import the database SQL dump.`)) return;
+  function renderBackupVMPills(vmNames) {
+    const container = document.getElementById('backups-vm-filter-pills');
+    if (!container) return;
 
-    showToast(`Deploying and restoring backup into ${vmName}...`);
+    if (vmNames.length === 0) {
+      container.innerHTML = '';
+      return;
+    }
+
+    if (currentBackupVMFilter !== 'all' && !vmNames.includes(currentBackupVMFilter)) {
+      currentBackupVMFilter = 'all';
+    }
+
+    let html = `<button class="filter-pill ${currentBackupVMFilter === 'all' ? 'active' : ''}" onclick="setBackupVMFilter('all')">All</button>`;
+    vmNames.forEach(vm => {
+      html += `<button class="filter-pill ${currentBackupVMFilter === vm ? 'active' : ''}" onclick="setBackupVMFilter('${vm}')">${vm}</button>`;
+    });
+    container.innerHTML = html;
+  }
+
+  function setBackupVMFilter(vm) {
+    currentBackupVMFilter = vm;
+    const container = document.getElementById('backups-vm-filter-pills');
+    if (container) {
+      container.querySelectorAll('.filter-pill').forEach(btn => {
+        const isAll = vm === 'all' && btn.innerText === 'All';
+        const isMatch = btn.innerText === vm;
+        btn.classList.toggle('active', isAll || isMatch);
+      });
+    }
+    renderBackupsRows();
+  }
+
+  function renderBackupsRows() {
+    const tbody = document.getElementById('backups-repo-body');
+    if (!tbody) return;
+
+    const filtered = currentBackupVMFilter === 'all'
+      ? cachedBackupsList
+      : cachedBackupsList.filter(i => i.vm_name === currentBackupVMFilter);
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">No backups for this machine</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(item => {
+      const isProj = item.type === 'project';
+      const typeBadge = isProj
+        ? '<span class="backup-type-badge backup-type-project">Project & DB</span>'
+        : '<span class="backup-type-badge backup-type-vm">Full VM</span>';
+
+      const sizeStr = item.size_mb >= 1024 
+        ? (item.size_mb / 1024).toFixed(2) + ' GB'
+        : item.size_mb.toFixed(1) + ' MB';
+
+      return `
+        <tr>
+          <td>${typeBadge}</td>
+          <td style="font-weight: 600; font-size: 13px;">${item.vm_name}</td>
+          <td style="font-family: 'Geist Mono', 'JetBrains Mono', monospace; font-size: 12px; color: var(--text);">${sizeStr}</td>
+          <td style="color: var(--text-muted); font-size: 12px;">${item.created_at}</td>
+          <td style="text-align: right;">
+            <div style="display: inline-flex; gap: 6px;">
+              ${isProj ? `<button class="btn btn-restore-deploy" onclick="deployBackup('${item.vm_name}', '${encodeURIComponent(item.path)}')">Restore</button>` : ''}
+              <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteBackup('${encodeURIComponent(item.path)}')">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  async function deployBackup(vmName, encodedPath) {
+    if (!confirm(`Restore this backup into VM "${vmName}"?\n\nThis will unpack project source files and import the database SQL dump.`)) return;
+
+    showToast(`Restoring backup into ${vmName}...`);
     try {
       const res = await fetch(`/api/backup/restore?vm=${encodeURIComponent(vmName)}&path=${encodedPath}`, { method: 'POST' });
       if (res.ok) {
@@ -3115,7 +3158,7 @@
 
       if (runningClusterJob) {
         bar.style.display = 'flex';
-        document.getElementById('jobs-msg').innerText = `⏳ ${runningClusterJob.vm_name}: ${runningClusterJob.message}`;
+        document.getElementById('jobs-msg').innerText = `${runningClusterJob.vm_name}: ${runningClusterJob.message}`;
         document.getElementById('jobs-meta').innerText = `Started: ${runningClusterJob.started_at}`;
       } else {
         bar.style.display = 'none';
