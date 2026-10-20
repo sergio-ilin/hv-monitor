@@ -7,6 +7,7 @@
 
 # Local configs & runtime state
 ip_config.json
+backup_settings.json
 backups/
 profile/
 *-profile/

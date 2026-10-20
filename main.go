@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"syscall"
@@ -57,10 +58,17 @@ type JobStatus struct {
 	StartedAt string `json:"started_at"`
 }
 
+type BackupSettings struct {
+	Enabled        bool   `json:"enabled"`
+	IntervalHours  int    `json:"interval_hours"`
+	RetentionCount int    `json:"retention_count"`
+	TargetType     string `json:"target_type"`
+}
+
 type IPStore struct {
 	sync.RWMutex
 	path string
-	data map[string]string // vmName -> IP
+	data map[string]string
 }
 
 var (
@@ -147,6 +155,105 @@ func getBackupsDir() string {
 	os.MkdirAll(filepath.Join(dir, "projects"), 0755)
 	os.MkdirAll(filepath.Join(dir, "vms"), 0755)
 	return dir
+}
+
+func loadBackupSettings() BackupSettings {
+	dir := getBackupsDir()
+	path := filepath.Join(filepath.Dir(dir), "backup_settings.json")
+	var s BackupSettings
+	raw, err := os.ReadFile(path)
+	if err == nil {
+		json.Unmarshal(raw, &s)
+	}
+	if s.IntervalHours <= 0 {
+		s.IntervalHours = 4
+	}
+	if s.RetentionCount <= 0 {
+		s.RetentionCount = 10
+	}
+	if s.TargetType == "" {
+		s.TargetType = "project"
+	}
+	return s
+}
+
+func saveBackupSettings(s BackupSettings) error {
+	dir := getBackupsDir()
+	path := filepath.Join(filepath.Dir(dir), "backup_settings.json")
+	raw, err := json.MarshalIndent(s, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, raw, 0644)
+}
+
+func enforceRetention(retentionCount int) {
+	if retentionCount <= 0 {
+		return
+	}
+	backups, err := listBackups()
+	if err != nil {
+		return
+	}
+
+	type key struct {
+		vm    string
+		btype string
+	}
+	groups := make(map[key][]BackupItem)
+	for _, b := range backups {
+		k := key{vm: b.VMName, btype: b.Type}
+		groups[k] = append(groups[k], b)
+	}
+
+	for _, list := range groups {
+		sort.Slice(list, func(i, j int) bool {
+			return list[i].CreatedAt > list[j].CreatedAt
+		})
+		if len(list) > retentionCount {
+			for _, item := range list[retentionCount:] {
+				_ = os.RemoveAll(item.Path)
+			}
+		}
+	}
+}
+
+func startBackupScheduler() {
+	go func() {
+		settings := loadBackupSettings()
+		enforceRetention(settings.RetentionCount)
+
+		ticker := time.NewTicker(15 * time.Minute)
+		var lastRun time.Time
+
+		for range ticker.C {
+			st := loadBackupSettings()
+			if !st.Enabled {
+				continue
+			}
+
+			interval := time.Duration(st.IntervalHours) * time.Hour
+			if time.Since(lastRun) >= interval {
+				lastRun = time.Now()
+				vms, err := getVMs()
+				if err == nil {
+					for _, vm := range vms {
+						if vm.State == "Running" {
+							jobID := fmt.Sprintf("auto_%s_%d", vm.Name, time.Now().Unix())
+							setJob(jobID, vm.Name, "project", "running", "Auto scheduled project backup...")
+							_, err := backupProjectAndDB(vm.Name)
+							if err != nil {
+								setJob(jobID, vm.Name, "project", "error", err.Error())
+							} else {
+								setJob(jobID, vm.Name, "project", "completed", "Auto backup completed")
+							}
+						}
+					}
+					enforceRetention(st.RetentionCount)
+				}
+			}
+		}
+	}()
 }
 
 const psScript = `
@@ -442,6 +549,69 @@ echo "BACKUP_READY:$FINAL_TAR"
 	return localTarPath, nil
 }
 
+func restoreProjectBackup(vmName, localTarPath string) error {
+	remoteTar := fmt.Sprintf("/tmp/restore_%d.tar.gz", time.Now().Unix())
+	transferCmd := exec.Command("multipass", "transfer", localTarPath, fmt.Sprintf("%s:%s", vmName, remoteTar))
+	transferCmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	if err := transferCmd.Run(); err != nil {
+		return fmt.Errorf("failed to transfer backup archive to VM: %w", err)
+	}
+
+	script := fmt.Sprintf(`
+set -e
+STAGE_DIR="/tmp/hv_restore_%d"
+mkdir -p "$STAGE_DIR"
+tar -xzf "%s" -C "$STAGE_DIR"
+
+# 1. Restore Database
+if [ -f "$STAGE_DIR/database/mysql_all_databases.sql" ]; then
+    MYSQL_CONTAINER=$(docker ps --format '{{.Names}}' 2>/dev/null | grep -iE 'mysql|mariadb|db' | head -n 1 || true)
+    if [ -n "$MYSQL_CONTAINER" ]; then
+        PASS=$(docker inspect "$MYSQL_CONTAINER" --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep -iE '^MYSQL_ROOT_PASSWORD=' | head -n 1 | cut -d= -f2 || true)
+        if [ -z "$PASS" ]; then
+            PASS=$(docker inspect "$MYSQL_CONTAINER" --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep -iE '^MYSQL_PASSWORD=' | head -n 1 | cut -d= -f2 || true)
+        fi
+        USER="root"
+        if [ -n "$PASS" ]; then
+            docker exec -i "$MYSQL_CONTAINER" mysql -u "$USER" -p"$PASS" < "$STAGE_DIR/database/mysql_all_databases.sql" 2>/dev/null || true
+        else
+            docker exec -i "$MYSQL_CONTAINER" mysql < "$STAGE_DIR/database/mysql_all_databases.sql" 2>/dev/null || true
+        fi
+    fi
+elif [ -f "$STAGE_DIR/database/postgres_all_databases.sql" ]; then
+    POSTGRES_CONTAINER=$(docker ps --format '{{.Names}}' 2>/dev/null | grep -iE 'postgres|psql' | head -n 1 || true)
+    if [ -n "$POSTGRES_CONTAINER" ]; then
+        docker exec -i "$POSTGRES_CONTAINER" psql -U postgres < "$STAGE_DIR/database/postgres_all_databases.sql" 2>/dev/null || true
+    fi
+fi
+
+# 2. Restore Project Source Code
+if [ -f "$STAGE_DIR/project/source_code.tar.gz" ]; then
+    PROJECT_TARGET=""
+    if [ -f "$STAGE_DIR/backup_info.txt" ]; then
+        PROJECT_TARGET=$(grep -iE '^project_source:' "$STAGE_DIR/backup_info.txt" | cut -d: -f2- | xargs || true)
+    fi
+    if [ -z "$PROJECT_TARGET" ]; then
+        PROJECT_TARGET="/home/ubuntu"
+    fi
+    PARENT_DIR=$(dirname "$PROJECT_TARGET")
+    tar -xzf "$STAGE_DIR/project/source_code.tar.gz" -C "$PARENT_DIR"
+fi
+
+rm -rf "$STAGE_DIR" "%s"
+`, time.Now().Unix(), remoteTar, remoteTar)
+
+	b64 := base64.StdEncoding.EncodeToString([]byte(script))
+	cmd := exec.Command("multipass", "exec", vmName, "--", "bash", "-c", fmt.Sprintf("echo %s | base64 -d | bash", b64))
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("restore script failed inside VM: %s (%w)", strings.TrimSpace(string(out)), err)
+	}
+
+	return nil
+}
+
 func backupFullVM(vmName string) (string, error) {
 	timestamp := time.Now().Format("20060102_150405")
 	backupsDir := getBackupsDir()
@@ -526,6 +696,11 @@ func listBackups() ([]BackupItem, error) {
 		}
 	}
 
+	// Sort newest first
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].CreatedAt > items[j].CreatedAt
+	})
+
 	return items, nil
 }
 
@@ -581,7 +756,7 @@ func launchAppWindow(url string) {
 	if browser != "" {
 		userData := filepath.Join(os.TempDir(), "hv-monitor-profile")
 		appArg := fmt.Sprintf("--app=%s", url)
-		sizeArg := "--window-size=1180,780"
+		sizeArg := "--window-size=1200,820"
 		profileArg := fmt.Sprintf("--user-data-dir=%s", userData)
 		appIdArg := "--app-id=HVMonitor"
 
@@ -598,7 +773,8 @@ func launchAppWindow(url string) {
 func main() {
 	ensureElevated()
 	initIPStore()
-	getBackupsDir() // ensure directories exist
+	getBackupsDir()
+	startBackupScheduler()
 
 	port := "18288"
 	url := "http://127.0.0.1:" + port
@@ -713,7 +889,7 @@ func main() {
 		})
 	})
 
-	// Backups API
+	// Backups list & jobs
 	http.HandleFunc("/api/backups", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		items, err := listBackups()
@@ -730,6 +906,7 @@ func main() {
 		json.NewEncoder(w).Encode(getActiveJobs())
 	})
 
+	// Trigger Project & DB backup
 	http.HandleFunc("/api/backup/project", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		name := r.URL.Query().Get("name")
@@ -739,7 +916,7 @@ func main() {
 		}
 
 		jobID := fmt.Sprintf("proj_%s_%d", name, time.Now().Unix())
-		setJob(jobID, name, "project", "running", "Creating Project & Database dump...")
+		setJob(jobID, name, "project", "running", "Dumping database & packaging project code...")
 
 		go func() {
 			path, err := backupProjectAndDB(name)
@@ -747,6 +924,8 @@ func main() {
 				setJob(jobID, name, "project", "error", err.Error())
 			} else {
 				setJob(jobID, name, "project", "completed", fmt.Sprintf("Saved to %s", filepath.Base(path)))
+				st := loadBackupSettings()
+				enforceRetention(st.RetentionCount)
 			}
 		}()
 
@@ -756,6 +935,7 @@ func main() {
 		})
 	})
 
+	// Trigger Full VM Export
 	http.HandleFunc("/api/backup/vm", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		name := r.URL.Query().Get("name")
@@ -765,7 +945,7 @@ func main() {
 		}
 
 		jobID := fmt.Sprintf("vm_%s_%d", name, time.Now().Unix())
-		setJob(jobID, name, "vm", "running", "Exporting Full Hyper-V VM image...")
+		setJob(jobID, name, "vm", "running", "Exporting complete Hyper-V VM image...")
 
 		go func() {
 			path, err := backupFullVM(name)
@@ -773,6 +953,8 @@ func main() {
 				setJob(jobID, name, "vm", "error", err.Error())
 			} else {
 				setJob(jobID, name, "vm", "completed", fmt.Sprintf("Exported to %s", filepath.Base(path)))
+				st := loadBackupSettings()
+				enforceRetention(st.RetentionCount)
 			}
 		}()
 
@@ -780,6 +962,55 @@ func main() {
 			"job_id": jobID,
 			"status": "started",
 		})
+	})
+
+	// Deploy / Restore Project & DB into VM
+	http.HandleFunc("/api/backup/restore", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		vm := r.URL.Query().Get("vm")
+		path := r.URL.Query().Get("path")
+
+		if vm == "" || path == "" {
+			http.Error(w, "missing vm or path", 400)
+			return
+		}
+
+		jobID := fmt.Sprintf("restore_%s_%d", vm, time.Now().Unix())
+		setJob(jobID, vm, "restore", "running", "Deploying and restoring database & files...")
+
+		go func() {
+			err := restoreProjectBackup(vm, path)
+			if err != nil {
+				setJob(jobID, vm, "restore", "error", err.Error())
+			} else {
+				setJob(jobID, vm, "restore", "completed", "Database and project code restored successfully!")
+			}
+		}()
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"job_id": jobID,
+			"status": "started",
+		})
+	})
+
+	// Backup schedule settings
+	http.HandleFunc("/api/backup/settings", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodPost {
+			var st BackupSettings
+			if err := json.NewDecoder(r.Body).Decode(&st); err != nil {
+				http.Error(w, err.Error(), 400)
+				return
+			}
+			if err := saveBackupSettings(st); err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			enforceRetention(st.RetentionCount)
+			json.NewEncoder(w).Encode(st)
+			return
+		}
+		json.NewEncoder(w).Encode(loadBackupSettings())
 	})
 
 	http.HandleFunc("/api/backup/open-folder", func(w http.ResponseWriter, r *http.Request) {

@@ -1,0 +1,6 @@
+{
+  "enabled": true,
+  "interval_hours": 4,
+  "retention_count": 10,
+  "target_type": "project"
+}
