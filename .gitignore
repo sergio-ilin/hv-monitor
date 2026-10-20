@@ -1,0 +1,15 @@
+# Binaries & compiled artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Local configs & runtime state
+ip_config.json
+profile/
+*-profile/
+
+# Windows OS metadata
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hyper-V Live Monitor</title>
+  <link rel="icon" type="image/png" href="/icon.png">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(17, 24, 39, 0.85);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover: rgba(59, 130, 246, 0.3);
+      --text: #f3f4f6;
+      --text-muted: #94a3b8;
+      --accent: #3b82f6;
+      --accent-glow: rgba(59, 130, 246, 0.35);
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.35);
+      --danger: #ef4444;
+      --danger-glow: rgba(239, 68, 68, 0.35);
+      --warning: #f59e0b;
+      --purple: #8b5cf6;
+      --cyan: #06b6d4;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.06) 0px, transparent 50%);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      padding: 24px 28px;
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+    }
+
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 22px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .title-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .app-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      box-shadow: 0 0 16px rgba(59, 130, 246, 0.4);
+    }
+    .title-group h1 {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .gateway-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: rgba(17, 24, 39, 0.8);
+      border: 1px solid var(--card-border);
+      transition: all 0.2s;
+    }
+    .gateway-pill.healthy {
+      color: var(--success);
+      border-color: rgba(16, 185, 129, 0.3);
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
+    }
+    .gateway-pill.unhealthy {
+      color: var(--danger);
+      border-color: rgba(239, 68, 68, 0.4);
+      background: rgba(239, 68, 68, 0.1);
+      cursor: pointer;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .search-input {
+      background: #111827;
+      border: 1px solid var(--card-border);
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+      width: 200px;
+      transition: all 0.2s;
+    }
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
+    .btn {
+      background: #1e293b;
+      color: #fff;
+      border: 1px solid var(--card-border);
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn:hover { background: #334155; transform: translateY(-1px); }
+
+    .btn-restore-all {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(59, 130, 246, 0.25));
+      border: 1px solid rgba(6, 182, 212, 0.4);
+      color: #67e8f9;
+    }
+    .btn-restore-all:hover {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.35), rgba(59, 130, 246, 0.4));
+      box-shadow: 0 0 16px rgba(6, 182, 212, 0.25);
+    }
+
+    .btn-warning {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fbbf24;
+    }
+    .btn-warning:hover {
+      background: rgba(245, 158, 11, 0.3);
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.25);
+    }
+
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    /* Summary Bar */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .summary-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+    .summary-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .summary-val {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    /* VM Cards */
+    .vm-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .vm-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 18px 22px;
+      display: grid;
+      grid-template-columns: 280px 1.5fr 1fr auto;
+      align-items: center;
+      gap: 20px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
+    .vm-card:hover {
+      border-color: var(--card-hover);
+      box-shadow: 0 6px 24px rgba(59, 130, 246, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .vm-identity {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .vm-title {
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+    }
+    .status-Running { background: var(--success); box-shadow: 0 0 10px var(--success); }
+    .status-Off { background: #64748b; }
+
+    .vm-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .ip-badges {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .ip-badge {
+      background: rgba(59, 130, 246, 0.12);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      user-select: all;
+      transition: all 0.15s;
+    }
+    .ip-badge:hover {
+      background: rgba(59, 130, 246, 0.25);
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+    }
+    .ip-badge.is-static {
+      background: rgba(6, 182, 212, 0.15);
+      color: #22d3ee;
+      border-color: rgba(6, 182, 212, 0.4);
+      font-weight: 600;
+    }
+    .ip-badge.is-static:hover {
+      background: rgba(6, 182, 212, 0.3);
+      box-shadow: 0 0 12px rgba(6, 182, 212, 0.4);
+    }
+    .ip-badge.is-dropped {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border-color: rgba(239, 68, 68, 0.4);
+      font-weight: 600;
+    }
+    .ip-badge.is-dropped:hover {
+      background: rgba(239, 68, 68, 0.3);
+    }
+
+    .metric-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .metric-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+    }
+    .metric-name {
+      width: 45px;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .bar-wrap {
+      flex: 1;
+      height: 7px;
+      background: #1e293b;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+    .bar-cpu { background: linear-gradient(90deg, #3b82f6, #8b5cf6); }
+    .bar-ram { background: linear-gradient(90deg, #10b981, #06b6d4); }
+    .metric-num {
+      width: 60px;
+      text-align: right;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* Actions on card: only 3 clean buttons */
+    .vm-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-action {
+      background: #1e293b;
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      padding: 7px 13px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-action:hover {
+      background: #334155;
+      border-color: #64748b;
+    }
+    .btn-action.ip-config {
+      background: rgba(6, 182, 212, 0.12);
+      border-color: rgba(6, 182, 212, 0.35);
+      color: #67e8f9;
+    }
+    .btn-action.ip-config:hover {
+      background: rgba(6, 182, 212, 0.25);
+    }
+    .btn-action.danger:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal-card {
+      background: #111827;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 26px 30px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      animation: modalSlide 0.2s ease-out;
+    }
+    @keyframes modalSlide {
+      from { opacity: 0; transform: translateY(12px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .form-input {
+      width: 100%;
+      background: #1f2937;
+      border: 1px solid var(--card-border);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .form-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+    }
+    .form-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e293b;
+      border: 1px solid var(--card-border);
+      padding: 12px 22px;
+      border-radius: 9px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.25s ease;
+      pointer-events: none;
+      z-index: 2000;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 900px) {
+      .vm-card {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="title-group">
+      <img src="/icon.png" class="app-logo" alt="HV Logo">
+      <div>
+        <h1>
+          Hyper-V Monitor
+          <span id="gw-status" class="gateway-pill healthy" title="Click to fix host gateway" onclick="restoreGateway()">
+            Host GW: 10.10.10.1 🟢
+          </span>
+        </h1>
+      </div>
+    </div>
+    <div class="controls">
+      <input type="text" id="search" class="search-input" placeholder="Search by name or IP...">
+      <button class="btn btn-restore-all" onclick="restoreAllIPs()" title="Restore Host Gateway and all VM static IPs">
+        ⚡ Restore All IPs
+      </button>
+      <button class="btn" onclick="fetchData()">🔄 Refresh</button>
+      <button class="btn btn-danger" onclick="exitApp()">✕ Close</button>
+    </div>
+  </header>
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="summary-label">Total Machines</div>
+      <div class="summary-val" id="stat-total">-</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Online</div>
+      <div class="summary-val" style="color: var(--success);" id="stat-running">-</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Allocated RAM</div>
+      <div class="summary-val" style="color: var(--purple);" id="stat-ram">-</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Static Dev IPs</div>
+      <div class="summary-val" style="color: var(--cyan);" id="stat-static">-</div>
+    </div>
+  </div>
+
+  <div id="vm-list" class="vm-grid">
+    <div style="text-align:center; padding: 40px; color: var(--text-muted);">
+      Synchronizing Hyper-V virtual machines...
+    </div>
+  </div>
+</div>
+
+<!-- Modal for IP Settings with Restore IP Button -->
+<div id="ip-modal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-card">
+    <div class="modal-title">
+      <span>⚙️ Static IP Configuration</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Virtual Machine</label>
+      <input type="text" id="modal-vm-name" class="form-input" readonly style="opacity: 0.7;">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Static IPv4 Address</label>
+      <input type="text" id="modal-vm-ip" class="form-input" placeholder="10.10.10.X">
+      <div class="form-hint">Host Gateway on Windows: 10.10.10.1</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Subnet Prefix (CIDR)</label>
+      <input type="text" id="modal-vm-cidr" class="form-input" value="24">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-warning" id="btn-modal-restore" onclick="modalRestoreCurrentIP()" title="Re-apply the static IP to eth0 without rebooting">
+        ⚡ Restore IP
+      </button>
+      <button class="btn btn-restore-all" id="btn-save-ip" onclick="saveIPConfig()">
+        Save & Apply
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+  let cachedVMs = [];
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.innerText = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  async function exitApp() {
+    showToast('Closing application...');
+    try { await fetch('/api/exit'); } catch(e){}
+    window.close();
+  }
+
+  window.addEventListener('beforeunload', () => {
+    navigator.sendBeacon('/api/exit');
+  });
+
+  async function checkGateway() {
+    try {
+      const res = await fetch('/api/network/gateway');
+      const data = await res.json();
+      const el = document.getElementById('gw-status');
+      if (data.healthy) {
+        el.className = 'gateway-pill healthy';
+        el.innerHTML = 'Host GW: 10.10.10.1 🟢';
+        el.title = 'Host gateway 10.10.10.1 is active';
+      } else {
+        el.className = 'gateway-pill unhealthy';
+        el.innerHTML = 'Host GW: Missing 🔴 (Click to Fix)';
+        el.title = 'Click to restore host static IP 10.10.10.1';
+      }
+    } catch(e) {}
+  }
+
+  async function restoreGateway() {
+    showToast('Restoring host gateway 10.10.10.1...');
+    try {
+      await fetch('/api/network/restore-gateway');
+      showToast('Host gateway 10.10.10.1 restored!');
+      checkGateway();
+    } catch(e) {
+      showToast('Failed to restore gateway');
+    }
+  }
+
+  async function restoreAllIPs() {
+    showToast('Restoring Host GW and all VM static IPs...');
+    try {
+      const res = await fetch('/api/network/restore-all');
+      const data = await res.json();
+      showToast('Restored IPs for: ' + (data.restored || []).join(', '));
+      setTimeout(fetchData, 1000);
+    } catch(e) {
+      showToast('Error restoring IPs');
+    }
+  }
+
+  function openIPModal(vmName, currentIP) {
+    document.getElementById('modal-vm-name').value = vmName;
+    document.getElementById('modal-vm-ip').value = currentIP || '10.10.10.';
+    document.getElementById('modal-vm-cidr').value = '24';
+
+    const restoreBtn = document.getElementById('btn-modal-restore');
+    if (currentIP && currentIP.startsWith('10.10.10.')) {
+      restoreBtn.style.display = 'inline-flex';
+    } else {
+      restoreBtn.style.display = 'none';
+    }
+
+    document.getElementById('ip-modal').classList.add('open');
+    setTimeout(() => document.getElementById('modal-vm-ip').focus(), 100);
+  }
+
+  function closeModal() {
+    document.getElementById('ip-modal').classList.remove('open');
+  }
+
+  async function modalRestoreCurrentIP() {
+    const name = document.getElementById('modal-vm-name').value;
+    showToast('Restoring static IP for ' + name + '...');
+    try {
+      await fetch('/api/network/restore-vm-ip?name=' + encodeURIComponent(name));
+      showToast('Static IP restored for ' + name + '!');
+      closeModal();
+      setTimeout(fetchData, 1000);
+    } catch(e) {
+      showToast('Failed to restore VM IP');
+    }
+  }
+
+  async function saveIPConfig() {
+    const name = document.getElementById('modal-vm-name').value;
+    const ip = document.getElementById('modal-vm-ip').value.trim();
+    const cidr = document.getElementById('modal-vm-cidr').value.trim() || '24';
+
+    if (!ip || !ip.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+      showToast('Please enter a valid IPv4 address');
+      return;
+    }
+
+    const saveBtn = document.getElementById('btn-save-ip');
+    saveBtn.innerText = 'Applying...';
+    saveBtn.disabled = true;
+
+    try {
+      const res = await fetch('/api/network/set-vm-ip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, ip, cidr })
+      });
+      if (res.ok) {
+        showToast('Static IP ' + ip + ' applied and persisted for ' + name + '!');
+        closeModal();
+        setTimeout(fetchData, 1200);
+      } else {
+        const err = await res.json();
+        showToast('Error: ' + (err.error || 'Failed to apply IP'));
+      }
+    } catch(e) {
+      showToast('Request failed');
+    } finally {
+      saveBtn.innerText = 'Save & Apply';
+      saveBtn.disabled = false;
+    }
+  }
+
+  async function triggerAction(action, name) {
+    showToast('Sending ' + action + ' command for ' + name + '...');
+    try {
+      await fetch('/api/action?action=' + action + '&name=' + encodeURIComponent(name));
+      setTimeout(fetchData, 1000);
+    } catch (e) {
+      showToast('Action failed');
+    }
+  }
+
+  async function fetchData() {
+    try {
+      checkGateway();
+      const res = await fetch('/api/vms');
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        cachedVMs = data;
+        renderVMs();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function renderVMs() {
+    const search = document.getElementById('search').value.toLowerCase();
+    const listEl = document.getElementById('vm-list');
+
+    let total = cachedVMs.length;
+    let running = 0;
+    let totalRam = 0;
+    let staticCount = 0;
+
+    const filtered = cachedVMs.filter(vm => {
+      if (vm.state === 'Running') running++;
+      totalRam += vm.ram_mb || 0;
+      if (vm.static_ip_status === 'active') staticCount++;
+
+      const ips = (vm.ips || []).join(' ');
+      return vm.name.toLowerCase().includes(search) || ips.includes(search);
+    });
+
+    document.getElementById('stat-total').innerText = total;
+    document.getElementById('stat-running').innerText = running;
+    document.getElementById('stat-ram').innerText = (totalRam / 1024).toFixed(1) + ' GB';
+    document.getElementById('stat-static').innerText = staticCount;
+
+    if (filtered.length === 0) {
+      listEl.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);">No virtual machines found</div>';
+      return;
+    }
+
+    listEl.innerHTML = filtered.map(vm => {
+      const isRunning = vm.state === 'Running';
+      const isDropped = vm.static_ip_status === 'dropped';
+
+      let badgesHtml = '';
+      if (vm.ips && vm.ips.length > 0) {
+        badgesHtml = vm.ips.map(ip => {
+          const isStatic = ip.startsWith('10.10.10.');
+          return `<span class="ip-badge ${isStatic ? 'is-static' : ''}" title="Click to copy IP" onclick="navigator.clipboard.writeText('${ip}'); showToast('Copied ${ip}!')">${isStatic ? '⚡ ' : ''}${ip}</span>`;
+        }).join('');
+      } else {
+        badgesHtml = '<span style="font-size:12px; color: #64748b;">no IP</span>';
+      }
+
+      if (isDropped && vm.configured_ip) {
+        badgesHtml += `<span class="ip-badge is-dropped" title="Static IP dropped! Click to open IP settings" onclick="openIPModal('${vm.name}', '${vm.configured_ip}')">🔴 ${vm.configured_ip} (Dropped)</span>`;
+      }
+
+      const ramGB = (vm.ram_mb / 1024).toFixed(1);
+      const ramPercent = Math.min(100, Math.round((vm.ram_mb / 8192) * 100));
+
+      return `
+        <div class="vm-card">
+          <div class="vm-identity">
+            <div class="vm-title">
+              <span class="status-dot status-${vm.state}"></span>
+              ${vm.name}
+            </div>
+            <div class="vm-sub">
+              Uptime: ${vm.uptime}
+            </div>
+            <div class="ip-badges">${badgesHtml}</div>
+          </div>
+
+          <div class="metric-group">
+            <div class="metric-row">
+              <span class="metric-name">CPU</span>
+              <div class="bar-wrap">
+                <div class="bar-fill bar-cpu" style="width: ${vm.cpu}%"></div>
+              </div>
+              <span class="metric-num">${vm.cpu}%</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">RAM</span>
+              <div class="bar-wrap">
+                <div class="bar-fill bar-ram" style="width: ${ramPercent}%"></div>
+              </div>
+              <span class="metric-num">${ramGB} GB</span>
+            </div>
+          </div>
+
+          <div style="font-size: 13px; color: var(--text-muted);">
+            Status: <strong style="color: ${isRunning ? 'var(--success)' : '#94a3b8'}">${vm.state}</strong>
+          </div>
+
+          <div class="vm-actions">
+            <button class="btn-action ip-config" title="Configure or restore static IP" onclick="openIPModal('${vm.name}', '${vm.configured_ip || ''}')">⚙️ IP</button>
+            ${isRunning 
+              ? `
+                <button class="btn-action" title="Full VM Reboot" onclick="triggerAction('restart', '${vm.name}')">Restart</button>
+                <button class="btn-action danger" title="Power off VM" onclick="triggerAction('stop', '${vm.name}')">Stop</button>
+              `
+              : `
+                <button class="btn-action" style="color: var(--success); border-color: rgba(16,185,129,0.3);" onclick="triggerAction('start', '${vm.name}')">Start</button>
+              `
+            }
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  document.getElementById('search').addEventListener('input', renderVMs);
+
+  fetchData();
+  setInterval(fetchData, 3000);
+</script>
+</body>
+</html>
