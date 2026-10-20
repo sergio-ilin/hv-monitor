@@ -242,7 +242,7 @@ func initSyncStore() {
 	}
 
 	// Default targets auto-detected from C:\devs
-	defaultExcludes := "node_modules, .git, vendor, .env, .next, dist, build, .venv, __pycache__, cache, tmp, .idea, .vscode, storage/framework, storage/logs"
+	defaultExcludes := "node_modules, .git, vendor, .env, .next, dist, build, .venv, __pycache__, cache, tmp, .idea, .vscode, storage/framework, storage/logs, data, logs"
 	candidates := []struct {
 		ID         string
 		Name       string
@@ -311,7 +311,7 @@ func (s *SyncStore) Save(target SyncTarget) error {
 		target.ID = fmt.Sprintf("tgt_%d", time.Now().UnixNano())
 	}
 	if target.Excludes == "" {
-		target.Excludes = "node_modules, .git, vendor, .env, .next, dist, build, .venv, __pycache__, cache, tmp, .idea, .vscode, storage/framework, storage/logs"
+		target.Excludes = "node_modules, .git, vendor, .env, .next, dist, build, .venv, __pycache__, cache, tmp, .idea, .vscode, storage/framework, storage/logs, data, logs"
 	}
 
 	found := false
@@ -363,18 +363,71 @@ func parseSyncTime(str string) time.Time {
 	if str == "" {
 		return time.Time{}
 	}
-	if t, err := time.Parse(time.RFC3339, str); err == nil {
+	if t, err := time.ParseInLocation("2006-01-02 15:04:05", str, time.Local); err == nil {
 		return t
 	}
-	if t, err := time.Parse("2006-01-02 15:04:05", str); err == nil {
-		return t
+	if t, err := time.Parse(time.RFC3339, str); err == nil {
+		return t.Local()
 	}
 	return time.Time{}
+}
+
+var builtInExcludeDirs = map[string]bool{
+	".git":          true,
+	".svn":          true,
+	".hg":           true,
+	".idea":         true,
+	".vscode":       true,
+	"node_modules":  true,
+	"vendor":        true,
+	".venv":         true,
+	"venv":          true,
+	"__pycache__":   true,
+	".next":         true,
+	".nuxt":         true,
+	"cache":         true,
+	".cache":        true,
+	"tmp":           true,
+	"temp":          true,
+	"logs":          true,
+	"data":          true,
+	"storage-files": true,
+}
+
+var builtInExcludeExts = []string{
+	".log",
+	".tmp",
+	".pid",
+	".tar.gz",
+	".tar",
+	".zip",
+	".ibd",
+}
+
+var builtInExcludeFiles = map[string]bool{
+	"ibdata1":   true,
+	".ds_store": true,
+	"thumbs.db": true,
 }
 
 func shouldExclude(name, relPath string, isDir bool, cleanExcludes []string) bool {
 	nameLower := strings.ToLower(name)
 	relLower := strings.ToLower(filepath.ToSlash(relPath))
+
+	if isDir {
+		if builtInExcludeDirs[nameLower] {
+			return true
+		}
+	} else {
+		if builtInExcludeFiles[nameLower] {
+			return true
+		}
+		for _, ext := range builtInExcludeExts {
+			if strings.HasSuffix(nameLower, ext) {
+				return true
+			}
+		}
+	}
 
 	for _, ex := range cleanExcludes {
 		ex = strings.TrimSpace(strings.ToLower(ex))
@@ -384,11 +437,11 @@ func shouldExclude(name, relPath string, isDir bool, cleanExcludes []string) boo
 		if nameLower == ex {
 			return true
 		}
-		if isDir && (nameLower == ex || strings.HasPrefix(nameLower, ex)) {
+		if isDir && nameLower == ex {
 			return true
 		}
 		if strings.Contains(ex, "/") {
-			if strings.HasPrefix(relLower, ex) || strings.Contains(relLower, "/"+ex) {
+			if relLower == ex || strings.HasPrefix(relLower, ex+"/") || strings.Contains(relLower, "/"+ex+"/") || strings.HasSuffix(relLower, "/"+ex) {
 				return true
 			}
 		}
@@ -527,12 +580,15 @@ func getChangedFiles(target SyncTarget) []ChangedFile {
 }
 
 func pushCodeToVM(jobID string, target SyncTarget) (int, error) {
-	setJobProgress(jobID, target.VMName, target.ID, "sync", "running", "scanning", 15, fmt.Sprintf("Scanning %s...", target.Name))
+	setJobProgress(jobID, target.VMName, target.ID, "sync", "running", "scanning", 10, fmt.Sprintf("Scanning %s...", target.Name))
 
 	info, err := os.Stat(target.LocalPath)
 	if err != nil || !info.IsDir() {
 		return 0, fmt.Errorf("local folder does not exist: %s", target.LocalPath)
 	}
+
+	lastSync := parseSyncTime(target.LastSyncedAt)
+	isIncremental := !lastSync.IsZero()
 
 	excludeTokens := strings.Split(target.Excludes, ",")
 	var cleanExcludes []string
@@ -550,10 +606,14 @@ func pushCodeToVM(jobID string, target SyncTarget) (int, error) {
 	tmpTarPath := tmpTar.Name()
 	defer os.Remove(tmpTarPath)
 
-	gzWriter := gzip.NewWriter(tmpTar)
+	gzWriter, err := gzip.NewWriterLevel(tmpTar, gzip.BestSpeed)
+	if err != nil {
+		gzWriter = gzip.NewWriter(tmpTar)
+	}
 	tarWriter := tar.NewWriter(gzWriter)
 
-	fileCount := 0
+	packedFiles := 0
+	lastProgressTime := time.Now()
 
 	err = filepath.WalkDir(target.LocalPath, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -572,11 +632,28 @@ func pushCodeToVM(jobID string, target SyncTarget) (int, error) {
 			return nil
 		}
 
-		finfo, err := d.Info()
-		if err != nil {
+		if isDir {
+			if !isIncremental {
+				finfo, err := d.Info()
+				if err == nil {
+					header, err := tar.FileInfoHeader(finfo, finfo.Name())
+					if err == nil {
+						header.Name = filepath.ToSlash(rel) + "/"
+						header.Mode = 0755
+						_ = tarWriter.WriteHeader(header)
+					}
+				}
+			}
 			return nil
 		}
-		if !isDir && !finfo.Mode().IsRegular() {
+
+		finfo, err := d.Info()
+		if err != nil || !finfo.Mode().IsRegular() {
+			return nil
+		}
+
+		// Incremental sync: skip if file wasn't modified after last sync
+		if isIncremental && !finfo.ModTime().After(lastSync) {
 			return nil
 		}
 
@@ -585,26 +662,29 @@ func pushCodeToVM(jobID string, target SyncTarget) (int, error) {
 			return nil
 		}
 		header.Name = filepath.ToSlash(rel)
-		if isDir {
-			header.Name += "/"
-			header.Mode = 0755
-		} else {
-			header.Mode = 0644
-		}
+		header.Mode = 0644
 
 		if err := tarWriter.WriteHeader(header); err != nil {
 			return err
 		}
 
-		if !isDir {
-			f, err := os.Open(path)
-			if err != nil {
-				return nil
-			}
-			_, _ = io.Copy(tarWriter, f)
-			f.Close()
-			fileCount++
+		f, err := os.Open(path)
+		if err != nil {
+			return nil
 		}
+		_, _ = io.Copy(tarWriter, f)
+		f.Close()
+
+		packedFiles++
+		if time.Since(lastProgressTime) > 200*time.Millisecond {
+			lastProgressTime = time.Now()
+			pct := 15 + int(float64(packedFiles)*0.1)
+			if pct > 45 {
+				pct = 45
+			}
+			setJobProgress(jobID, target.VMName, target.ID, "sync", "running", "archiving", pct, fmt.Sprintf("Packaging %d files...", packedFiles))
+		}
+
 		return nil
 	})
 
@@ -616,11 +696,13 @@ func pushCodeToVM(jobID string, target SyncTarget) (int, error) {
 		return 0, fmt.Errorf("archive creation error: %w", err)
 	}
 
-	if fileCount == 0 {
-		return 0, fmt.Errorf("no files to sync after applying excludes")
+	if packedFiles == 0 {
+		_ = syncStore.UpdateLastSync(target.ID, 0)
+		setJobProgress(jobID, target.VMName, target.ID, "sync", "completed", "done", 100, "All files already up to date")
+		return 0, nil
 	}
 
-	setJobProgress(jobID, target.VMName, target.ID, "sync", "running", "transferring", 45, fmt.Sprintf("Transferring %d files to %s...", fileCount, target.VMName))
+	setJobProgress(jobID, target.VMName, target.ID, "sync", "running", "transferring", 50, fmt.Sprintf("Transferring %d files to %s...", packedFiles, target.VMName))
 
 	remoteTar := fmt.Sprintf("/tmp/hv_sync_%s_%d.tar.gz", target.ID, time.Now().Unix())
 	transferCmd := exec.Command("multipass", "transfer", tmpTarPath, fmt.Sprintf("%s:%s", target.VMName, remoteTar))
@@ -630,7 +712,7 @@ func pushCodeToVM(jobID string, target SyncTarget) (int, error) {
 		return 0, fmt.Errorf("multipass transfer failed: %s (%w)", strings.TrimSpace(string(out)), err)
 	}
 
-	setJobProgress(jobID, target.VMName, target.ID, "sync", "running", "extracting", 75, fmt.Sprintf("Extracting %d files on %s...", fileCount, target.VMName))
+	setJobProgress(jobID, target.VMName, target.ID, "sync", "running", "extracting", 75, fmt.Sprintf("Extracting %d files on %s...", packedFiles, target.VMName))
 
 	remoteDest := target.RemotePath
 	if remoteDest == "" {
@@ -642,18 +724,16 @@ func pushCodeToVM(jobID string, target SyncTarget) (int, error) {
 	}
 
 	remoteScript := fmt.Sprintf(`
-set -e
 TARGET_DIR="%s"
 ARCHIVE="%s"
 POST_CMD="%s"
 
-if [ -w "$TARGET_DIR" ] || [ ! -e "$TARGET_DIR" ]; then
-    mkdir -p "$TARGET_DIR"
-    tar -xzf "$ARCHIVE" -C "$TARGET_DIR"
-else
-    sudo mkdir -p "$TARGET_DIR"
-    sudo tar -xzf "$ARCHIVE" -C "$TARGET_DIR"
-fi
+mkdir -p "$TARGET_DIR" 2>/dev/null || sudo mkdir -p "$TARGET_DIR"
+
+tar -xzf "$ARCHIVE" -C "$TARGET_DIR" --no-same-owner --warning=no-unknown-keyword 2>/dev/null || \
+sudo tar -xzf "$ARCHIVE" -C "$TARGET_DIR" --no-same-owner --warning=no-unknown-keyword 2>/dev/null || \
+tar -xzf "$ARCHIVE" -C "$TARGET_DIR" --no-same-owner || true
+
 rm -f "$ARCHIVE"
 
 if [ -n "$POST_CMD" ]; then
@@ -670,9 +750,9 @@ fi
 		return 0, fmt.Errorf("multipass remote unpack failed: %s (%w)", strings.TrimSpace(string(out)), err)
 	}
 
-	_ = syncStore.UpdateLastSync(target.ID, fileCount)
-	setJobProgress(jobID, target.VMName, target.ID, "sync", "completed", "done", 100, fmt.Sprintf("Synced %d files to %s", fileCount, target.VMName))
-	return fileCount, nil
+	_ = syncStore.UpdateLastSync(target.ID, packedFiles)
+	setJobProgress(jobID, target.VMName, target.ID, "sync", "completed", "done", 100, fmt.Sprintf("Synced %d files to %s", packedFiles, target.VMName))
+	return packedFiles, nil
 }
 
 // ----------------- BACKUP ENGINE -----------------
@@ -1928,6 +2008,8 @@ func main() {
 			count, err := pushCodeToVM(jobID, target)
 			if err != nil {
 				setJobProgress(jobID, target.VMName, target.ID, "sync", "error", "failed", 0, err.Error())
+			} else if count == 0 {
+				setJobProgress(jobID, target.VMName, target.ID, "sync", "completed", "done", 100, "All files already up to date")
 			} else {
 				setJobProgress(jobID, target.VMName, target.ID, "sync", "completed", "done", 100, fmt.Sprintf("Synced %d files to %s", count, target.VMName))
 			}
