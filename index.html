@@ -42,7 +42,7 @@
     }
 
     .container {
-      max-width: 1220px;
+      max-width: 1240px;
       margin: 0 auto;
     }
 
@@ -51,7 +51,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      margin-bottom: 22px;
       flex-wrap: wrap;
       gap: 16px;
     }
@@ -62,9 +62,9 @@
       gap: 14px;
     }
     .app-logo {
-      width: 36px;
-      height: 36px;
-      border-radius: 9px;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
       box-shadow: 0 0 16px var(--accent-glow);
     }
     h1 {
@@ -122,10 +122,28 @@
       box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
     }
 
-    .controls {
+    .header-live-badge {
       display: flex;
+      align-items: center;
       gap: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--card-border);
+      padding: 6px 14px;
+      border-radius: 999px;
     }
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success-glow);
+      animation: pulseLiveDot 2s infinite ease-in-out;
+    }
+    @keyframes pulseLiveDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
     .btn {
       background: rgba(255, 255, 255, 0.06);
       border: 1px solid var(--card-border);
@@ -226,13 +244,13 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
       gap: 14px;
-      margin-bottom: 24px;
+      margin-bottom: 22px;
     }
     .summary-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: 12px;
-      padding: 16px;
+      padding: 16px 18px;
       backdrop-filter: blur(12px);
     }
     .summary-label {
@@ -250,7 +268,106 @@
       font-family: 'JetBrains Mono', monospace;
     }
 
-    /* Tab 1: VM Cards */
+    /* Tab 1: Analytics Grid */
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+      gap: 18px;
+    }
+    .analytics-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: all 0.2s ease;
+    }
+    .analytics-card:hover {
+      border-color: rgba(59, 130, 246, 0.35);
+      box-shadow: 0 6px 20px -4px rgba(0, 0, 0, 0.35);
+    }
+    .analytics-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .analytics-title {
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .analytics-uptime {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .analytics-chart-wrap {
+      background: rgba(0, 0, 0, 0.32);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 10px 14px;
+    }
+    .analytics-chart-canvas {
+      width: 100%;
+      height: 64px;
+      display: block;
+    }
+    .analytics-chart-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      margin-top: 6px;
+    }
+
+    /* Tab 2: Machines List */
+    .vms-top-bar {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 16px 22px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .filter-pills {
+      display: flex;
+      gap: 6px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--card-border);
+    }
+    .filter-pill {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+    .filter-pill:hover {
+      color: #fff;
+    }
+    .filter-pill.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+
     .vm-list {
       display: flex;
       flex-direction: column;
@@ -259,12 +376,12 @@
     .vm-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 16px 20px;
+      border-radius: 14px;
+      padding: 18px 22px;
       display: grid;
-      grid-template-columns: 240px 220px 1fr 140px;
+      grid-template-columns: 280px 1fr 220px;
       align-items: center;
-      gap: 20px;
+      gap: 24px;
       backdrop-filter: blur(12px);
       transition: all 0.2s ease;
     }
@@ -278,7 +395,7 @@
       gap: 4px;
     }
     .vm-title {
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 700;
       display: flex;
       align-items: center;
@@ -300,27 +417,6 @@
     }
     .status-Off {
       background: #64748b;
-    }
-
-    /* Canvas Analytics Sparkline */
-    .chart-container {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .sparkline-canvas {
-      background: rgba(0, 0, 0, 0.35);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 8px;
-      width: 100%;
-      height: 48px;
-    }
-    .chart-meta {
-      display: flex;
-      justify-content: space-between;
-      font-size: 10px;
-      color: var(--text-muted);
-      font-family: 'JetBrains Mono', monospace;
     }
 
     .metric-group {
@@ -368,7 +464,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      margin-top: 4px;
+      margin-top: 5px;
     }
     .ip-badge {
       background: rgba(255, 255, 255, 0.05);
@@ -395,31 +491,10 @@
     .vm-actions {
       display: flex;
       justify-content: flex-end;
-      gap: 6px;
-    }
-    .btn-action {
-      background: transparent;
-      border: 1px solid var(--card-border);
-      color: var(--text-muted);
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .btn-action:hover {
-      color: var(--text);
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.2);
-    }
-    .btn-action.danger:hover {
-      color: #f87171;
-      background: rgba(239, 68, 68, 0.15);
-      border-color: rgba(239, 68, 68, 0.3);
+      gap: 8px;
     }
 
-    /* Tab 2: IP Management Table */
+    /* Tab 3: IP Management Table */
     .ip-table-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -487,7 +562,7 @@
     }
     .table-input:focus { border-color: var(--accent); }
 
-    /* Tab 3: Backups & Recovery */
+    /* Tab 4: Backups & Recovery */
     .backup-top-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -572,7 +647,7 @@
       box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
     }
 
-    /* Tab 4: Code Sync Styles */
+    /* Tab 5: Code Sync Styles */
     .sync-top-bar {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -860,6 +935,7 @@
       .vm-card { grid-template-columns: 1fr; gap: 16px; }
       .backup-top-grid { grid-template-columns: 1fr; }
       .sync-grid { grid-template-columns: 1fr; }
+      .analytics-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -879,10 +955,13 @@
       </div>
     </div>
 
-    <!-- Navigation Tabs -->
+    <!-- 5 Navigation Tabs -->
     <nav class="nav-tabs">
       <button class="nav-tab active" onclick="switchTab('analytics')">
-        📊 Analytics & VMs
+        📊 Analytics
+      </button>
+      <button class="nav-tab" onclick="switchTab('vms')">
+        🖥️ Machines
       </button>
       <button class="nav-tab" onclick="switchTab('network')">
         🌐 IP Management
@@ -895,13 +974,14 @@
       </button>
     </nav>
 
-    <div class="controls">
-      <button class="btn" onclick="fetchData()">🔄 Refresh</button>
-      <button class="btn btn-danger" onclick="exitApp()">✕ Close</button>
+    <!-- Sleek live daemon connection indicator -->
+    <div class="header-live-badge" title="Daemon running locally on port 18288">
+      <span class="live-dot"></span>
+      <span style="font-size: 12px; font-family: 'JetBrains Mono'; color: #cbd5e1; font-weight: 500;">Live (3s)</span>
     </div>
   </header>
 
-  <!-- ==================== TAB 1: ANALYTICS & VMS ==================== -->
+  <!-- ==================== TAB 1: PURE ANALYTICS ==================== -->
   <div id="tab-analytics" class="tab-page active">
     <div class="summary-grid">
       <div class="summary-card">
@@ -917,17 +997,48 @@
         <div class="summary-val" id="stat-ram">-</div>
       </div>
       <div class="summary-card">
-        <div class="summary-label">Avg CPU Usage</div>
+        <div class="summary-label">Cluster Avg CPU</div>
         <div class="summary-val" id="stat-cpu">-</div>
       </div>
     </div>
 
-    <div class="vm-list" id="vm-list">
-      <div style="text-align: center; padding: 40px; color: var(--text-muted);">Loading virtual machines...</div>
+    <!-- Telemetry Cards Grid (Pure Analytics, No Buttons, No IPs) -->
+    <div class="analytics-grid" id="analytics-list">
+      <div style="text-align: center; padding: 40px; color: var(--text-muted); grid-column: 1 / -1;">
+        Loading telemetry data...
+      </div>
     </div>
   </div>
 
-  <!-- ==================== TAB 2: IP MANAGEMENT ==================== -->
+  <!-- ==================== TAB 2: MACHINES & CONTAINERS ==================== -->
+  <div id="tab-vms" class="tab-page">
+    <div class="vms-top-bar">
+      <div>
+        <div style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+          <span>🖥️ Virtual Machines & Containers</span>
+          <span id="vms-summary-pill" class="gateway-pill healthy" style="font-size: 11px;">Loading...</span>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+          Power controls, network status, and operational management for Hyper-V and Multipass instances.
+        </p>
+      </div>
+
+      <div class="filter-pills">
+        <button class="filter-pill active" id="filter-all" onclick="setVMFilter('all')">All (<span id="count-all">0</span>)</button>
+        <button class="filter-pill" id="filter-running" onclick="setVMFilter('running')">Running (<span id="count-running">0</span>)</button>
+        <button class="filter-pill" id="filter-stopped" onclick="setVMFilter('stopped')">Stopped (<span id="count-stopped">0</span>)</button>
+      </div>
+    </div>
+
+    <!-- VM Control Cards List -->
+    <div class="vm-list" id="vm-control-list">
+      <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+        Loading virtual machines...
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TAB 3: IP MANAGEMENT ==================== -->
   <div id="tab-network" class="tab-page">
     <div class="ip-table-card">
       <div class="ip-gw-banner">
@@ -964,7 +1075,7 @@
     </div>
   </div>
 
-  <!-- ==================== TAB 3: BACKUPS & RECOVERY ==================== -->
+  <!-- ==================== TAB 4: BACKUPS & RECOVERY ==================== -->
   <div id="tab-backups" class="tab-page">
     <div class="backup-top-grid">
       <!-- Schedule Box -->
@@ -1071,7 +1182,7 @@
     </div>
   </div>
 
-  <!-- ==================== TAB 4: CODE SYNC ==================== -->
+  <!-- ==================== TAB 5: CODE SYNC ==================== -->
   <div id="tab-sync" class="tab-page">
     <div class="sync-top-bar">
       <div>
@@ -1192,6 +1303,7 @@
   let cachedVMs = [];
   let cachedSyncTargets = [];
   let currentPreviewTargetId = null;
+  let currentVMFilter = 'all';
   let vmHistory = {}; // vmName -> [cpu1, cpu2, ...]
   const MAX_HISTORY = 16;
 
@@ -1202,23 +1314,19 @@
     setTimeout(() => t.classList.remove('show'), 2800);
   }
 
-  async function exitApp() {
-    showToast('Closing application...');
-    try { await fetch('/api/exit'); } catch(e){}
-    window.close();
-  }
-
   window.addEventListener('beforeunload', () => {
     navigator.sendBeacon('/api/exit');
   });
 
-  /* Tabs Navigation */
+  /* 5 Tabs Navigation */
   function switchTab(tabId) {
+    const tabs = ['analytics', 'vms', 'network', 'backups', 'sync'];
     document.querySelectorAll('.nav-tab').forEach((t, i) => {
-      t.classList.toggle('active', ['analytics', 'network', 'backups', 'sync'][i] === tabId);
+      t.classList.toggle('active', tabs[i] === tabId);
     });
     document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
-    document.getElementById('tab-' + tabId).classList.add('active');
+    const activePage = document.getElementById('tab-' + tabId);
+    if (activePage) activePage.classList.add('active');
 
     if (tabId === 'backups') {
       loadBackupsTable();
@@ -1227,6 +1335,10 @@
       renderIPTable();
     } else if (tabId === 'sync') {
       fetchSyncTargets(false);
+    } else if (tabId === 'vms') {
+      renderVMs();
+    } else if (tabId === 'analytics') {
+      renderAnalytics();
     }
   }
 
@@ -1267,9 +1379,9 @@
     }
   }
 
-  /* Render Tab 1 Analytics Cards */
-  function renderAnalyticsVMs() {
-    const listEl = document.getElementById('vm-list');
+  /* ==================== TAB 1: PURE ANALYTICS ==================== */
+  function renderAnalytics() {
+    const container = document.getElementById('analytics-list');
     let total = cachedVMs.length;
     let running = 0;
     let totalRam = 0;
@@ -1293,12 +1405,152 @@
     document.getElementById('stat-ram').innerText = (totalRam / 1024).toFixed(1) + ' GB';
     document.getElementById('stat-cpu').innerText = running > 0 ? Math.round(totalCpu / running) + '%' : '0%';
 
+    if (!container) return;
     if (cachedVMs.length === 0) {
-      listEl.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);">No virtual machines found</div>';
+      container.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted); grid-column: 1 / -1;">No machines found</div>';
       return;
     }
 
-    listEl.innerHTML = cachedVMs.map(vm => {
+    container.innerHTML = cachedVMs.map(vm => {
+      const history = vmHistory[vm.name] || [0];
+      const maxCpu = Math.max(...history);
+      const ramGB = (vm.ram_mb / 1024).toFixed(1);
+      const ramPercent = Math.min(100, Math.round((vm.ram_mb / 8192) * 100));
+
+      return `
+        <div class="analytics-card">
+          <div class="analytics-header">
+            <div class="analytics-title">
+              <span class="status-dot status-${vm.state}"></span>
+              <span>${vm.name}</span>
+            </div>
+            <div class="analytics-uptime">Uptime: ${vm.uptime}</div>
+          </div>
+
+          <div class="analytics-chart-wrap">
+            <canvas id="chart-analytics-${vm.name}" class="analytics-chart-canvas" width="340" height="64"></canvas>
+            <div class="analytics-chart-meta">
+              <span>CPU History Trend</span>
+              <span>Peak: <b>${maxCpu}%</b> &nbsp;|&nbsp; Live: <b style="color: #38bdf8;">${vm.cpu}%</b></span>
+            </div>
+          </div>
+
+          <div class="metric-group">
+            <div class="metric-row">
+              <span class="metric-name">CPU</span>
+              <div class="bar-wrap">
+                <div class="bar-fill bar-cpu" style="width: ${vm.cpu}%"></div>
+              </div>
+              <span class="metric-num">${vm.cpu}%</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">RAM</span>
+              <div class="bar-wrap">
+                <div class="bar-fill bar-ram" style="width: ${ramPercent}%"></div>
+              </div>
+              <span class="metric-num">${ramGB} GB</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Draw sparklines
+    cachedVMs.forEach(vm => {
+      drawSparkline(`chart-analytics-${vm.name}`, vmHistory[vm.name] || [0]);
+    });
+  }
+
+  function drawSparkline(canvasId, data) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+
+    ctx.clearRect(0, 0, w, h);
+    if (data.length < 2) return;
+
+    const maxVal = Math.max(10, Math.max(...data));
+    const step = w / (data.length - 1);
+
+    // Gradient fill under line
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, 'rgba(6, 182, 212, 0.4)');
+    grad.addColorStop(1, 'rgba(6, 182, 212, 0.0)');
+
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    data.forEach((val, i) => {
+      const x = i * step;
+      const y = h - (val / maxVal) * (h - 10) - 5;
+      ctx.lineTo(x, y);
+    });
+    ctx.lineTo(w, h);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    data.forEach((val, i) => {
+      const x = i * step;
+      const y = h - (val / maxVal) * (h - 10) - 5;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = '#06b6d4';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+  }
+
+  /* ==================== TAB 2: MACHINES & CONTAINERS ==================== */
+  function setVMFilter(filter) {
+    currentVMFilter = filter;
+    document.querySelectorAll('.filter-pill').forEach(btn => {
+      btn.classList.toggle('active', btn.id === 'filter-' + filter);
+    });
+    renderVMs();
+  }
+
+  function renderVMs() {
+    const container = document.getElementById('vm-control-list');
+    if (!container) return;
+
+    let total = cachedVMs.length;
+    let running = 0;
+    let stopped = 0;
+
+    cachedVMs.forEach(vm => {
+      if (vm.state === 'Running') running++;
+      else stopped++;
+    });
+
+    const countAll = document.getElementById('count-all');
+    if (countAll) countAll.innerText = total;
+    const countRun = document.getElementById('count-running');
+    if (countRun) countRun.innerText = running;
+    const countStop = document.getElementById('count-stopped');
+    if (countStop) countStop.innerText = stopped;
+
+    const pill = document.getElementById('vms-summary-pill');
+    if (pill) {
+      pill.innerText = `${running} of ${total} Running`;
+      pill.className = running === total ? 'gateway-pill healthy' : 'gateway-pill unhealthy';
+    }
+
+    const filtered = cachedVMs.filter(vm => {
+      if (currentVMFilter === 'running') return vm.state === 'Running';
+      if (currentVMFilter === 'stopped') return vm.state !== 'Running';
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);">No virtual machines match this filter</div>';
+      return;
+    }
+
+    container.innerHTML = filtered.map(vm => {
       const isRunning = vm.state === 'Running';
       const ipList = (vm.ips && vm.ips.length > 0)
         ? vm.ips.map(ip => {
@@ -1321,15 +1573,6 @@
             <div class="ip-badges">${ipList}</div>
           </div>
 
-          <!-- Real-Time Sparkline Analytics Chart -->
-          <div class="chart-container">
-            <canvas id="chart-${vm.name}" class="sparkline-canvas" width="220" height="48"></canvas>
-            <div class="chart-meta">
-              <span>CPU Trend</span>
-              <span>Live: ${vm.cpu}%</span>
-            </div>
-          </div>
-
           <div class="metric-group">
             <div class="metric-row">
               <span class="metric-name">CPU</span>
@@ -1350,68 +1593,20 @@
           <div class="vm-actions">
             ${isRunning 
               ? `
-                <button class="btn-action" title="Full VM Reboot" onclick="triggerAction('restart', '${vm.name}')">Restart</button>
-                <button class="btn-action danger" title="Power off VM" onclick="triggerAction('stop', '${vm.name}')">Stop</button>
+                <button class="btn btn-warning" style="padding: 7px 14px;" title="Full VM Reboot" onclick="triggerAction('restart', '${vm.name}')">🔄 Restart</button>
+                <button class="btn btn-danger" style="padding: 7px 14px;" title="Power off VM" onclick="triggerAction('stop', '${vm.name}')">⏹ Stop</button>
               `
               : `
-                <button class="btn-action" style="color: var(--success); border-color: rgba(16,185,129,0.3);" onclick="triggerAction('start', '${vm.name}')">Start</button>
+                <button class="btn btn-restore-all" style="padding: 7px 18px;" onclick="triggerAction('start', '${vm.name}')">▶ Start</button>
               `
             }
           </div>
         </div>
       `;
     }).join('');
-
-    // Draw canvas charts
-    cachedVMs.forEach(vm => {
-      drawSparkline(`chart-${vm.name}`, vmHistory[vm.name] || [0]);
-    });
   }
 
-  function drawSparkline(canvasId, data) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const w = canvas.width;
-    const h = canvas.height;
-
-    ctx.clearRect(0, 0, w, h);
-    if (data.length < 2) return;
-
-    const maxVal = Math.max(10, Math.max(...data));
-    const step = w / (data.length - 1);
-
-    // Gradient fill under line
-    const grad = ctx.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, 'rgba(6, 182, 212, 0.35)');
-    grad.addColorStop(1, 'rgba(6, 182, 212, 0.0)');
-
-    ctx.beginPath();
-    ctx.moveTo(0, h);
-    data.forEach((val, i) => {
-      const x = i * step;
-      const y = h - (val / maxVal) * (h - 8) - 4;
-      ctx.lineTo(x, y);
-    });
-    ctx.lineTo(w, h);
-    ctx.closePath();
-    ctx.fillStyle = grad;
-    ctx.fill();
-
-    // Line
-    ctx.beginPath();
-    data.forEach((val, i) => {
-      const x = i * step;
-      const y = h - (val / maxVal) * (h - 8) - 4;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.strokeStyle = '#06b6d4';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }
-
-  /* Render Tab 2 IP Management Table */
+  /* ==================== TAB 3: IP MANAGEMENT ==================== */
   function renderIPTable() {
     const tbody = document.getElementById('ip-table-body');
     if (cachedVMs.length === 0) {
@@ -1496,7 +1691,7 @@
     }
   }
 
-  /* Tab 3: Backups & Recovery */
+  /* ==================== TAB 4: BACKUPS & RECOVERY ==================== */
   function updateManualVMDropdown() {
     const select = document.getElementById('bk-manual-vm');
     if (!select) return;
@@ -1652,7 +1847,7 @@
     }
   }
 
-  /* ==================== TAB 4: CODE SYNC ENGINE ==================== */
+  /* ==================== TAB 5: CODE SYNC ENGINE ==================== */
 
   async function fetchSyncTargets(showToastFeedback) {
     if (showToastFeedback) showToast('Scanning local project folders for changes...');
@@ -1998,7 +2193,8 @@
       const data = await res.json();
       if (Array.isArray(data)) {
         cachedVMs = data;
-        renderAnalyticsVMs();
+        renderAnalytics();
+        renderVMs();
         renderIPTable();
         updateManualVMDropdown();
       }
