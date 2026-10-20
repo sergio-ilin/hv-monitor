@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net"
 	"net/http"
 	"os"
@@ -861,7 +862,66 @@ var (
 	isUserAnAdmin                               = shell32.NewProc("IsUserAnAdmin")
 	shellExecuteW                               = shell32.NewProc("ShellExecuteW")
 	procSetCurrentProcessExplicitAppUserModelID = shell32.NewProc("SetCurrentProcessExplicitAppUserModelID")
+
+	kernel32                 = syscall.NewLazyDLL("kernel32.dll")
+	procGlobalMemoryStatusEx = kernel32.NewProc("GlobalMemoryStatusEx")
+	procGetDiskFreeSpaceExW  = kernel32.NewProc("GetDiskFreeSpaceExW")
 )
+
+type memoryStatusEx struct {
+	dwLength                uint32
+	dwMemoryLoad            uint32
+	ullTotalPhys            uint64
+	ullAvailPhys            uint64
+	ullTotalPageFile        uint64
+	ullAvailPageFile        uint64
+	ullTotalVirtual         uint64
+	ullAvailVirtual         uint64
+	ullAvailExtendedVirtual uint64
+}
+
+type HostResources struct {
+	TotalRAMGB  float64 `json:"total_ram_gb"`
+	FreeRAMGB   float64 `json:"free_ram_gb"`
+	UsedRAMGB   float64 `json:"used_ram_gb"`
+	CPUCores    int     `json:"cpu_cores"`
+	TotalDiskGB float64 `json:"total_disk_gb"`
+	FreeDiskGB  float64 `json:"free_disk_gb"`
+	UsedDiskGB  float64 `json:"used_disk_gb"`
+}
+
+func getHostResources() HostResources {
+	res := HostResources{
+		CPUCores: runtime.NumCPU(),
+	}
+
+	var mem memoryStatusEx
+	mem.dwLength = uint32(unsafe.Sizeof(mem))
+	r1, _, _ := procGlobalMemoryStatusEx.Call(uintptr(unsafe.Pointer(&mem)))
+	if r1 != 0 {
+		gb := float64(1024 * 1024 * 1024)
+		res.TotalRAMGB = math.Round((float64(mem.ullTotalPhys)/gb)*10) / 10
+		res.FreeRAMGB = math.Round((float64(mem.ullAvailPhys)/gb)*10) / 10
+		res.UsedRAMGB = math.Round((res.TotalRAMGB-res.FreeRAMGB)*10) / 10
+	}
+
+	dir, _ := syscall.UTF16PtrFromString("C:\\")
+	var freeAvail, total, totalFree uint64
+	r2, _, _ := procGetDiskFreeSpaceExW.Call(
+		uintptr(unsafe.Pointer(dir)),
+		uintptr(unsafe.Pointer(&freeAvail)),
+		uintptr(unsafe.Pointer(&total)),
+		uintptr(unsafe.Pointer(&totalFree)),
+	)
+	if r2 != 0 {
+		gb := float64(1024 * 1024 * 1024)
+		res.TotalDiskGB = math.Round((float64(total)/gb)*10) / 10
+		res.FreeDiskGB = math.Round((float64(freeAvail)/gb)*10) / 10
+		res.UsedDiskGB = math.Round((res.TotalDiskGB-res.FreeDiskGB)*10) / 10
+	}
+
+	return res
+}
 
 func isElevated() bool {
 	ret, _, _ := isUserAnAdmin.Call()
@@ -1438,8 +1498,15 @@ func main() {
 			"task_scheduler":   checkTaskSchedulerInstalled(),
 			"backups_path":     getBackupsDir(),
 			"sync_targets_num": len(syncStore.All()),
+			"resources":        getHostResources(),
 		}
 		json.NewEncoder(w).Encode(info)
+	})
+
+	// Host Resources API
+	http.HandleFunc("/api/system/resources", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(getHostResources())
 	})
 
 	// VM status API

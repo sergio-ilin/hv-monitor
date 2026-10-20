@@ -134,46 +134,52 @@
       color: var(--text);
     }
 
-    /* Tab Navigation */
+    /* Tab Navigation - Minimalist Segmented */
     .nav-tabs {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       background: var(--nav-bg);
       border: 1px solid var(--card-border);
-      border-radius: 10px;
+      border-radius: 8px;
       padding: 3px;
-      gap: 3px;
+      gap: 2px;
     }
     .nav-tab {
       background: transparent;
-      border: none;
+      border: 1px solid transparent;
       color: var(--text-muted);
-      padding: 6px 14px;
-      border-radius: 7px;
+      padding: 5px 13px;
+      border-radius: 6px;
       font-size: 13px;
       font-weight: 500;
+      letter-spacing: -0.01em;
       cursor: pointer;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 6px;
       transition: all 0.15s ease;
       font-family: inherit;
+      user-select: none;
     }
     .nav-tab:hover {
       color: var(--text);
-      background: rgba(125, 125, 125, 0.08);
+      background: var(--card-bg-hover);
     }
     .nav-tab.active {
-      color: #fff;
-      background: var(--accent);
+      color: var(--text);
+      background: var(--card-bg);
+      font-weight: 600;
+      border-color: var(--card-border);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
     }
 
     .nav-badge {
-      background: var(--warning);
-      color: #0f172a;
+      background: var(--warning-subtle);
+      color: var(--warning);
+      border: 1px solid rgba(245, 158, 11, 0.3);
       font-size: 10px;
-      font-weight: 700;
-      padding: 1px 6px;
+      font-weight: 600;
+      padding: 0 5px;
       border-radius: 999px;
       margin-left: 2px;
     }
@@ -191,8 +197,8 @@
       gap: 6px;
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      padding: 5px 12px;
-      border-radius: 999px;
+      padding: 5px 11px;
+      border-radius: 8px;
       font-size: 12px;
       font-family: 'Geist Mono', 'JetBrains Mono', monospace;
       color: var(--text-muted);
@@ -204,21 +210,21 @@
       background: var(--success);
     }
     .live-label {
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 500;
     }
 
     .user-profile-btn {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 7px;
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       color: var(--text);
       padding: 5px 12px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 600;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 500;
       cursor: pointer;
       font-family: inherit;
       transition: all 0.15s ease;
@@ -227,13 +233,16 @@
       border-color: var(--card-border-hover);
       background: var(--card-bg-hover);
     }
-    .user-avatar-badge {
-      font-size: 14px;
-      line-height: 1;
+    .user-btn-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
     }
     .user-btn-name {
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 500;
+      color: var(--text);
     }
 
     /* Buttons */
@@ -325,33 +334,155 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Tab 1: Global Summary Cards */
-    .summary-grid {
+    /* Tab 1: Cluster & Host Resource Utilization Overview */
+    .cluster-resource-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 12px;
-      margin-bottom: 18px;
+      margin-bottom: 20px;
     }
-    .summary-card {
+    .resource-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: 10px;
-      padding: 12px 16px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: border-color 0.15s ease;
     }
-    .summary-label {
-      color: var(--text-muted);
+    .resource-card:hover {
+      border-color: var(--card-border-hover);
+    }
+    .resource-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .resource-label {
       font-size: 11px;
       font-weight: 600;
       letter-spacing: 0.04em;
       text-transform: uppercase;
-      margin-bottom: 4px;
+      color: var(--text-muted);
     }
-    .summary-val {
+    .resource-pill {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: var(--code-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      font-family: 'Geist Mono', 'JetBrains Mono', monospace;
+    }
+    .resource-main-val {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .val-primary {
       font-size: 22px;
       font-weight: 700;
       color: var(--text);
       font-family: 'Geist Mono', 'JetBrains Mono', monospace;
-      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.03em;
+    }
+    .val-divider {
+      font-size: 16px;
+      color: var(--text-dim);
+      font-weight: 400;
+    }
+    .val-secondary {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-family: 'Geist Mono', 'JetBrains Mono', monospace;
+    }
+    .val-subtext {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .resource-bar-wrap {
+      width: 100%;
+      height: 6px;
+      background: var(--code-bg);
+      border-radius: 999px;
+      overflow: hidden;
+      display: flex;
+      margin-top: 2px;
+    }
+    .resource-bar-vm {
+      background: var(--accent);
+      height: 100%;
+      transition: width 0.3s ease;
+    }
+    .resource-bar-host {
+      background: #475569;
+      height: 100%;
+      transition: width 0.3s ease;
+    }
+    .resource-bar-free {
+      background: var(--success);
+      height: 100%;
+      transition: width 0.3s ease;
+    }
+    .resource-bar-cpu {
+      background: var(--cyan);
+      height: 100%;
+      transition: width 0.3s ease;
+    }
+    .resource-bar-disk {
+      background: var(--purple);
+      height: 100%;
+      transition: width 0.3s ease;
+    }
+    .resource-bar-fleet {
+      background: var(--success);
+      height: 100%;
+      transition: width 0.3s ease;
+    }
+    .resource-legend {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: 'Geist Mono', 'JetBrains Mono', monospace;
+      margin-top: 2px;
+    }
+    .legend-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+    .dot-vm { background: var(--accent); }
+    .dot-free { background: var(--success); }
+    .dot-host { background: #475569; }
+    .dot-cpu { background: var(--cyan); }
+
+    .section-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    .section-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: 'Geist Mono', monospace;
     }
 
     /* Tab 1: Analytics Grid */
@@ -999,104 +1130,134 @@
       border-bottom: none;
     }
 
-    /* User & Settings Section Modal */
-    .user-info-card {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background: var(--code-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 10px;
-      padding: 12px 14px;
-      margin-bottom: 14px;
+    /* Minimalist User Modal */
+    .user-settings-box {
+      max-width: 310px;
+      padding: 16px 18px;
+      border-radius: 12px;
     }
-    .user-avatar-circle {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-    }
-    .user-info-meta {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .user-info-name {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text);
-    }
-    .user-info-host {
-      font-size: 11px;
-      color: var(--text-muted);
-      font-family: 'Geist Mono', 'JetBrains Mono', monospace;
-    }
-
-    .settings-group {
-      margin-bottom: 14px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--card-border);
-    }
-    .settings-group-label {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-    }
-    .settings-row {
+    .user-modal-top {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 6px 0;
-      font-size: 13px;
+      margin-bottom: 14px;
     }
-    .settings-label {
-      color: var(--text);
-      font-size: 13px;
-    }
-
-    .theme-switch-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
+    .user-modal-identity {
+      display: flex;
+      align-items: center;
       gap: 8px;
     }
-    .theme-option {
+    .user-modal-username {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .user-modal-badge {
+      font-size: 10px;
+      font-family: 'Geist Mono', 'JetBrains Mono', monospace;
+      color: var(--success);
+      background: var(--success-subtle);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .btn-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 4px 6px;
+      border-radius: 4px;
+      line-height: 1;
+      font-family: inherit;
+      transition: color 0.15s ease;
+    }
+    .btn-close:hover {
+      color: var(--text);
+      background: var(--card-bg-hover);
+    }
+    .user-modal-section {
+      margin-bottom: 14px;
+    }
+    .user-modal-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .theme-segmented {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
       background: var(--code-bg);
       border: 1px solid var(--card-border);
-      border-radius: 8px;
-      padding: 8px 10px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      cursor: pointer;
+      border-radius: 7px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .theme-btn {
+      background: transparent;
+      border: 1px solid transparent;
       color: var(--text-muted);
+      padding: 6px 0;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 5px;
+      text-align: center;
       transition: all 0.15s ease;
       font-family: inherit;
     }
-    .theme-option:hover {
-      border-color: var(--card-border-hover);
+    .theme-btn:hover {
       color: var(--text);
     }
-    .theme-option.active {
-      border-color: var(--accent);
-      background: var(--accent-subtle);
-      color: var(--accent);
+    .theme-btn.active {
+      background: var(--card-bg);
+      border-color: var(--card-border);
+      color: var(--text);
       font-weight: 600;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
-    .theme-option-icon {
-      font-size: 16px;
+    .user-modal-footer {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-top: 1px solid var(--card-border);
+      padding-top: 12px;
     }
-    .theme-option-label {
+    .user-modal-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       font-size: 12px;
+      color: var(--text-muted);
+    }
+    .btn-link {
+      background: transparent;
+      border: none;
+      color: var(--accent);
+      font-size: 12px;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: none;
+      font-family: inherit;
+    }
+    .btn-link:hover {
+      text-decoration: underline;
+    }
+    .user-modal-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-dim);
+      font-family: 'Geist Mono', 'JetBrains Mono', monospace;
+      margin-top: 2px;
     }
 
     /* Toast */
@@ -1146,33 +1307,23 @@
       </div>
     </div>
 
-    <!-- 5 Navigation Tabs -->
+    <!-- 5 Navigation Tabs (Minimalist, No Emojis) -->
     <nav class="nav-tabs">
-      <button class="nav-tab active" onclick="switchTab('analytics')">
-        📊 Analytics
-      </button>
-      <button class="nav-tab" onclick="switchTab('vms')">
-        🖥️ Machines
-      </button>
-      <button class="nav-tab" onclick="switchTab('network')">
-        🌐 IP Management
-      </button>
-      <button class="nav-tab" onclick="switchTab('backups')">
-        📦 Backups & Recovery
-      </button>
-      <button class="nav-tab" onclick="switchTab('sync')">
-        🚀 Code Sync <span id="sync-count-badge" class="nav-badge" style="display:none;">0</span>
-      </button>
+      <button class="nav-tab active" onclick="switchTab('analytics')">Analytics</button>
+      <button class="nav-tab" onclick="switchTab('vms')">Machines</button>
+      <button class="nav-tab" onclick="switchTab('network')">Network</button>
+      <button class="nav-tab" onclick="switchTab('backups')">Backups</button>
+      <button class="nav-tab" onclick="switchTab('sync')">Code Sync <span id="sync-count-badge" class="nav-badge" style="display:none;">0</span></button>
     </nav>
 
-    <!-- Header Right Section: Live Daemon Status & Separate User Settings Button -->
+    <!-- Header Right Section: Live Daemon Status & User Settings Button -->
     <div class="header-right">
       <div class="header-live-badge" title="Daemon running locally on port 18288">
         <span class="live-dot"></span>
         <span class="live-label">Live (3s)</span>
       </div>
-      <button id="user-profile-btn" class="user-profile-btn" onclick="toggleUserSettings()" title="User Profile & Settings">
-        <span class="user-avatar-badge">👤</span>
+      <button id="user-profile-btn" class="user-profile-btn" onclick="toggleUserSettings()" title="User Settings">
+        <span class="user-btn-dot"></span>
         <span id="user-btn-name" class="user-btn-name">User</span>
       </button>
     </div>
@@ -1180,23 +1331,95 @@
 
   <!-- ==================== TAB 1: PURE ANALYTICS ==================== -->
   <div id="tab-analytics" class="tab-page active">
-    <div class="summary-grid">
-      <div class="summary-card">
-        <div class="summary-label">Total Machines</div>
-        <div class="summary-val" id="stat-total">-</div>
+    <!-- Cluster & Host Resource Utilization Overview -->
+    <div class="cluster-resource-grid">
+      <!-- Card 1: RAM Consumption & Remaining -->
+      <div class="resource-card">
+        <div class="resource-card-header">
+          <span class="resource-label">Container RAM Allocation</span>
+          <span class="resource-pill" id="stat-ram-pct">0% Host</span>
+        </div>
+        <div class="resource-main-val">
+          <span class="val-primary" id="stat-ram-used">0.0 GB</span>
+          <span class="val-divider">/</span>
+          <span class="val-secondary" id="stat-ram-total">0.0 GB</span>
+        </div>
+        <div class="resource-bar-wrap">
+          <div id="bar-ram-vm" class="resource-bar-vm" style="width: 0%;" title="VMs Allocated"></div>
+          <div id="bar-ram-host" class="resource-bar-host" style="width: 0%;" title="Host System & Apps"></div>
+          <div id="bar-ram-free" class="resource-bar-free" style="width: 100%;" title="Free Physical Memory"></div>
+        </div>
+        <div class="resource-legend">
+          <span><span class="legend-dot dot-vm"></span>VMs: <b id="stat-ram-vm-sub">0 GB</b></span>
+          <span><span class="legend-dot dot-free"></span>Free: <b id="stat-ram-free-sub" style="color: var(--success);">0 GB</b></span>
+          <span><span class="legend-dot dot-host"></span>Host: <b id="stat-ram-host-sub">0 GB</b></span>
+        </div>
       </div>
-      <div class="summary-card">
-        <div class="summary-label">Running</div>
-        <div class="summary-val" id="stat-running" style="color: var(--success);">-</div>
+
+      <!-- Card 2: Cluster CPU & Headroom -->
+      <div class="resource-card">
+        <div class="resource-card-header">
+          <span class="resource-label">Cluster CPU Load</span>
+          <span class="resource-pill" id="stat-cpu-cores">16 Cores</span>
+        </div>
+        <div class="resource-main-val">
+          <span class="val-primary" id="stat-cpu-avg">0%</span>
+          <span class="val-subtext">active load</span>
+        </div>
+        <div class="resource-bar-wrap">
+          <div id="bar-cpu-load" class="resource-bar-cpu" style="width: 0%;"></div>
+        </div>
+        <div class="resource-legend">
+          <span><span class="legend-dot dot-cpu"></span>Load: <b id="stat-cpu-load-sub">0%</b></span>
+          <span><span class="legend-dot dot-free"></span>Headroom: <b id="stat-cpu-free-sub" style="color: var(--success);">100%</b></span>
+        </div>
       </div>
-      <div class="summary-card">
-        <div class="summary-label">Allocated RAM</div>
-        <div class="summary-val" id="stat-ram">-</div>
+
+      <!-- Card 3: Host Storage & Free Space -->
+      <div class="resource-card">
+        <div class="resource-card-header">
+          <span class="resource-label">Host Storage (C:)</span>
+          <span class="resource-pill" id="stat-disk-free-pct">0% Free</span>
+        </div>
+        <div class="resource-main-val">
+          <span class="val-primary" id="stat-disk-free">0 GB</span>
+          <span class="val-subtext">remaining free</span>
+        </div>
+        <div class="resource-bar-wrap">
+          <div id="bar-disk-used" class="resource-bar-disk" style="width: 0%;"></div>
+        </div>
+        <div class="resource-legend">
+          <span>Used: <b id="stat-disk-used-sub">0 GB</b></span>
+          <span>Capacity: <b id="stat-disk-total-sub">0 GB</b></span>
+        </div>
       </div>
-      <div class="summary-card">
-        <div class="summary-label">Cluster Avg CPU</div>
-        <div class="summary-val" id="stat-cpu">-</div>
+
+      <!-- Card 4: Machine Fleet Status -->
+      <div class="resource-card">
+        <div class="resource-card-header">
+          <span class="resource-label">Active Fleet</span>
+          <span class="resource-pill" id="stat-fleet-total">0 Instances</span>
+        </div>
+        <div class="resource-main-val">
+          <span class="val-primary" style="color: var(--success);" id="stat-fleet-running">0</span>
+          <span class="val-divider">/</span>
+          <span class="val-secondary" id="stat-fleet-all">0</span>
+          <span class="val-subtext">running</span>
+        </div>
+        <div class="resource-bar-wrap">
+          <div id="bar-fleet-active" class="resource-bar-fleet" style="width: 0%;"></div>
+        </div>
+        <div class="resource-legend">
+          <span>Running: <b id="stat-fleet-run-sub" style="color: var(--success);">0</b></span>
+          <span>Stopped: <b id="stat-fleet-stop-sub" style="color: var(--text-dim);">0</b></span>
+        </div>
       </div>
+    </div>
+
+    <!-- Section Heading for Per-Machine Trendlines -->
+    <div class="section-title-row">
+      <span class="section-title">Per-Machine Telemetry & Trendlines</span>
+      <span class="section-subtitle" id="analytics-count-label">Loading...</span>
     </div>
 
     <!-- Telemetry Cards Grid (Pure Analytics, No Buttons, No IPs) -->
@@ -1211,8 +1434,8 @@
   <div id="tab-vms" class="tab-page">
     <div class="vms-top-bar">
       <div>
-        <div style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-          <span>🖥️ Virtual Machines</span>
+        <div style="font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+          <span>Virtual Machines</span>
           <span id="vms-summary-pill" class="gateway-pill healthy" style="font-size: 11px;">Loading...</span>
         </div>
       </div>
@@ -1493,80 +1716,42 @@
 
 <div id="toast" class="toast"></div>
 
-<!-- Modal: User Profile & Settings -->
+<!-- Modal: User Profile & Settings (Minimalist) -->
 <div id="user-settings-modal" class="modal-overlay" onclick="handleUserSettingsBackdrop(event)">
-  <div class="modal-box" style="max-width: 460px;">
-    <div class="modal-header">
-      <div>
-        <div class="modal-title">Settings & Preferences</div>
-        <div style="font-size: 12px; color: var(--text-muted);">Manage theme, environment, and background tasks</div>
+  <div class="modal-box user-settings-box">
+    <!-- Header: User & Status & Close -->
+    <div class="user-modal-top">
+      <div class="user-modal-identity">
+        <span class="user-modal-username" id="user-card-name">Administrator</span>
+        <span class="user-modal-badge" id="user-card-priv">Admin</span>
       </div>
-      <button class="btn" style="padding: 4px 8px;" onclick="closeUserSettings()">✕</button>
+      <button class="btn-close" onclick="closeUserSettings()" title="Close">✕</button>
     </div>
 
-    <!-- User Information Card -->
-    <div class="user-info-card">
-      <div class="user-avatar-circle">👤</div>
-      <div class="user-info-meta">
-        <div class="user-info-name" id="user-card-name">Administrator</div>
-        <div class="user-info-host" id="user-card-host">localhost &bull; Windows</div>
-      </div>
-      <span id="user-card-priv" class="gateway-pill healthy" style="font-size: 10px;">Elevated (Admin)</span>
-    </div>
-
-    <!-- Theme Setting -->
-    <div class="settings-group">
-      <div class="settings-group-label">Appearance / Theme</div>
-      <div class="theme-switch-grid">
-        <button type="button" class="theme-option" id="theme-btn-light" onclick="setTheme('light')">
-          <span class="theme-option-icon">☀️</span>
-          <span class="theme-option-label">Light</span>
-        </button>
-        <button type="button" class="theme-option" id="theme-btn-dark" onclick="setTheme('dark')">
-          <span class="theme-option-icon">🌙</span>
-          <span class="theme-option-label">Dark</span>
-        </button>
-        <button type="button" class="theme-option" id="theme-btn-system" onclick="setTheme('system')">
-          <span class="theme-option-icon">💻</span>
-          <span class="theme-option-label">System</span>
-        </button>
+    <!-- Theme Control -->
+    <div class="user-modal-section">
+      <div class="user-modal-label">Appearance</div>
+      <div class="theme-segmented">
+        <button type="button" class="theme-btn" id="theme-btn-light" onclick="setTheme('light')">Light</button>
+        <button type="button" class="theme-btn" id="theme-btn-dark" onclick="setTheme('dark')">Dark</button>
+        <button type="button" class="theme-btn" id="theme-btn-system" onclick="setTheme('system')">System</button>
       </div>
     </div>
 
-    <!-- System Services & Paths -->
-    <div class="settings-group">
-      <div class="settings-group-label">System Integration</div>
-      <div class="settings-row">
-        <span class="settings-label">Auto-Backup Service</span>
-        <span id="user-backup-status" class="gateway-pill healthy" style="font-size: 10px;">Active</span>
+    <!-- Quick Actions & Links -->
+    <div class="user-modal-footer">
+      <div class="user-modal-row">
+        <span>Backups</span>
+        <button class="btn-link" onclick="openBackupsFolder()">Open Folder ↗</button>
       </div>
-      <div class="settings-row">
-        <span class="settings-label">Local Backups Directory</span>
-        <button class="btn" style="font-size: 11px; padding: 3px 8px;" onclick="openBackupsFolder()">📂 Open Folder</button>
+      <div class="user-modal-row">
+        <span>Repository</span>
+        <a href="https://github.com/itunlimit/hv-monitor" target="_blank" class="btn-link">GitHub ↗</a>
       </div>
-      <div class="settings-row">
-        <span class="settings-label">Code Sync Projects</span>
-        <span id="user-sync-count" style="font-family: 'Geist Mono', monospace; font-size: 12px; color: var(--text-muted);">-</span>
+      <div class="user-modal-meta">
+        <span>Hyper-V Monitor</span>
+        <span id="user-app-version">v1.4.0</span>
       </div>
-    </div>
-
-    <!-- Project & Repository -->
-    <div class="settings-group" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
-      <div class="settings-group-label">About</div>
-      <div class="settings-row">
-        <span class="settings-label">Application Version</span>
-        <span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: var(--text-muted);" id="user-app-version">v1.4.0</span>
-      </div>
-      <div class="settings-row">
-        <span class="settings-label">GitHub Repository</span>
-        <a href="https://github.com/itunlimit/hv-monitor" target="_blank" style="color: var(--accent); font-size: 12px; text-decoration: none; display: flex; align-items: center; gap: 4px;">
-          <span>github.com/itunlimit/hv-monitor</span> ↗
-        </a>
-      </div>
-    </div>
-
-    <div class="modal-footer" style="margin-top: 18px;">
-      <button class="btn btn-restore-all" style="width: 100%; justify-content: center;" onclick="closeUserSettings()">Done</button>
     </div>
   </div>
 </div>
@@ -1634,6 +1819,8 @@
     }
   }
 
+  let cachedResources = null;
+
   async function loadSystemInfo() {
     try {
       const res = await fetch('/api/system/info');
@@ -1646,37 +1833,127 @@
       const cardName = document.getElementById('user-card-name');
       if (cardName && info.username) cardName.innerText = info.username;
 
-      const cardHost = document.getElementById('user-card-host');
-      if (cardHost) cardHost.innerText = `${info.hostname || 'PC'} • ${info.os || 'windows'}`;
-
       const cardPriv = document.getElementById('user-card-priv');
       if (cardPriv) {
-        if (info.is_elevated) {
-          cardPriv.className = 'gateway-pill healthy';
-          cardPriv.innerText = '🛡️ Elevated (Admin)';
-        } else {
-          cardPriv.className = 'gateway-pill unhealthy';
-          cardPriv.innerText = 'Standard User';
-        }
+        cardPriv.innerText = info.is_elevated ? 'Admin' : 'User';
       }
-
-      const backupStatus = document.getElementById('user-backup-status');
-      if (backupStatus) {
-        if (info.task_scheduler) {
-          backupStatus.className = 'gateway-pill healthy';
-          backupStatus.innerText = 'Task Scheduler (Active)';
-        } else {
-          backupStatus.className = 'gateway-pill unhealthy';
-          backupStatus.innerText = 'Not Registered';
-        }
-      }
-
-      const syncCount = document.getElementById('user-sync-count');
-      if (syncCount) syncCount.innerText = `${info.sync_targets_num || 0} configured`;
 
       const appVer = document.getElementById('user-app-version');
       if (appVer && info.version) appVer.innerText = `v${info.version}`;
+
+      if (info.resources) {
+        cachedResources = info.resources;
+        updateResourceOverview();
+      }
     } catch(e) {}
+  }
+
+  async function fetchSystemResources() {
+    try {
+      const res = await fetch('/api/system/resources');
+      if (res.ok) {
+        cachedResources = await res.json();
+        updateResourceOverview();
+      }
+    } catch(e) {}
+  }
+
+  function updateResourceOverview() {
+    let total = cachedVMs.length;
+    let running = 0;
+    let totalRamMB = 0;
+    let totalCpu = 0;
+
+    cachedVMs.forEach(vm => {
+      if (vm.state === 'Running') {
+        running++;
+        totalCpu += vm.cpu || 0;
+        totalRamMB += vm.ram_mb || 0;
+      }
+    });
+
+    const vmRamGB = totalRamMB > 0 ? (totalRamMB / 1024) : 0;
+    const avgCpu = running > 0 ? Math.round(totalCpu / running) : 0;
+
+    if (cachedResources) {
+      const totalRAM = cachedResources.total_ram_gb || 32;
+      const freeRAM = cachedResources.free_ram_gb || 0;
+      const usedRAM = cachedResources.used_ram_gb || 0;
+      const hostOtherRAM = Math.max(0, usedRAM - vmRamGB);
+
+      const vmPct = Math.min(100, Math.round((vmRamGB / totalRAM) * 100));
+      const hostPct = Math.min(100 - vmPct, Math.round((hostOtherRAM / totalRAM) * 100));
+      const freePct = Math.max(0, 100 - vmPct - hostPct);
+
+      // RAM Card
+      const elRamUsed = document.getElementById('stat-ram-used');
+      if (elRamUsed) elRamUsed.innerText = vmRamGB.toFixed(1) + ' GB';
+      const elRamTotal = document.getElementById('stat-ram-total');
+      if (elRamTotal) elRamTotal.innerText = totalRAM.toFixed(1) + ' GB';
+      const elRamPct = document.getElementById('stat-ram-pct');
+      if (elRamPct) elRamPct.innerText = `${vmPct}% Host`;
+
+      const barRamVM = document.getElementById('bar-ram-vm');
+      if (barRamVM) barRamVM.style.width = `${vmPct}%`;
+      const barRamHost = document.getElementById('bar-ram-host');
+      if (barRamHost) barRamHost.style.width = `${hostPct}%`;
+      const barRamFree = document.getElementById('bar-ram-free');
+      if (barRamFree) barRamFree.style.width = `${freePct}%`;
+
+      const subVM = document.getElementById('stat-ram-vm-sub');
+      if (subVM) subVM.innerText = vmRamGB.toFixed(1) + ' GB';
+      const subFree = document.getElementById('stat-ram-free-sub');
+      if (subFree) subFree.innerText = freeRAM.toFixed(1) + ' GB';
+      const subHost = document.getElementById('stat-ram-host-sub');
+      if (subHost) subHost.innerText = hostOtherRAM.toFixed(1) + ' GB';
+
+      // CPU Card
+      const elCpuAvg = document.getElementById('stat-cpu-avg');
+      if (elCpuAvg) elCpuAvg.innerText = `${avgCpu}%`;
+      const elCpuCores = document.getElementById('stat-cpu-cores');
+      if (elCpuCores) elCpuCores.innerText = `${cachedResources.cpu_cores || 16} Cores`;
+      const barCpuLoad = document.getElementById('bar-cpu-load');
+      if (barCpuLoad) barCpuLoad.style.width = `${avgCpu}%`;
+      const subCpuLoad = document.getElementById('stat-cpu-load-sub');
+      if (subCpuLoad) subCpuLoad.innerText = `${avgCpu}%`;
+      const subCpuFree = document.getElementById('stat-cpu-free-sub');
+      if (subCpuFree) subCpuFree.innerText = `${Math.max(0, 100 - avgCpu)}%`;
+
+      // Disk Card
+      const totalDisk = cachedResources.total_disk_gb || 500;
+      const freeDisk = cachedResources.free_disk_gb || 0;
+      const usedDisk = cachedResources.used_disk_gb || 0;
+      const freeDiskPct = Math.round((freeDisk / totalDisk) * 100);
+      const usedDiskPct = Math.round((usedDisk / totalDisk) * 100);
+
+      const elDiskFree = document.getElementById('stat-disk-free');
+      if (elDiskFree) elDiskFree.innerText = `${freeDisk.toFixed(0)} GB`;
+      const elDiskPct = document.getElementById('stat-disk-free-pct');
+      if (elDiskPct) elDiskPct.innerText = `${freeDiskPct}% Free`;
+      const barDisk = document.getElementById('bar-disk-used');
+      if (barDisk) barDisk.style.width = `${usedDiskPct}%`;
+      const subDiskUsed = document.getElementById('stat-disk-used-sub');
+      if (subDiskUsed) subDiskUsed.innerText = `${usedDisk.toFixed(0)} GB`;
+      const subDiskTotal = document.getElementById('stat-disk-total-sub');
+      if (subDiskTotal) subDiskTotal.innerText = `${totalDisk.toFixed(0)} GB`;
+    }
+
+    // Fleet Card
+    const elFleetRun = document.getElementById('stat-fleet-running');
+    if (elFleetRun) elFleetRun.innerText = running;
+    const elFleetAll = document.getElementById('stat-fleet-all');
+    if (elFleetAll) elFleetAll.innerText = total;
+    const elFleetTotal = document.getElementById('stat-fleet-total');
+    if (elFleetTotal) elFleetTotal.innerText = `${total} Total`;
+    const barFleet = document.getElementById('bar-fleet-active');
+    if (barFleet) barFleet.style.width = total > 0 ? `${Math.round((running / total) * 100)}%` : '0%';
+    const subFleetRun = document.getElementById('stat-fleet-run-sub');
+    if (subFleetRun) subFleetRun.innerText = running;
+    const subFleetStop = document.getElementById('stat-fleet-stop-sub');
+    if (subFleetStop) subFleetStop.innerText = (total - running);
+
+    const countLabel = document.getElementById('analytics-count-label');
+    if (countLabel) countLabel.innerText = `${total} instances (${running} running)`;
   }
 
   async function openBackupsFolder() {
@@ -1781,10 +2058,7 @@
       if (vmHistory[vm.name].length > MAX_HISTORY) vmHistory[vm.name].shift();
     });
 
-    document.getElementById('stat-total').innerText = total;
-    document.getElementById('stat-running').innerText = running;
-    document.getElementById('stat-ram').innerText = (totalRam / 1024).toFixed(1) + ' GB';
-    document.getElementById('stat-cpu').innerText = running > 0 ? Math.round(totalCpu / running) + '%' : '0%';
+    updateResourceOverview();
 
     if (!container) return;
     if (cachedVMs.length === 0) {
@@ -2542,6 +2816,7 @@
     try {
       checkGateway();
       checkJobs();
+      fetchSystemResources();
 
       const res = await fetch('/api/vms');
       const data = await res.json();
