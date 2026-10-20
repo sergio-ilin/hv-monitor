@@ -30,10 +30,17 @@ When running Linux development virtual machines on Windows via **Hyper-V** or **
 
 ## ✨ Features
 
-- **📑 Multi-Tab Interface:**
+- **📑 4-Tab Workspace Interface:**
   - **📊 Analytics & VMs:** Real-time animated Canvas charts displaying CPU % and RAM trendlines over time for every machine, live uptime, and power controls (`Restart`, `Stop`, `Start`).
   - **🌐 IP Management:** Dedicated network table for managing, assigning, and persisting static IPv4 addresses (`10.10.10.X`) with host gateway auto-repair.
   - **📦 Backups & Recovery:** Full-page backup repository with automated scheduling, retention policies, and one-click deployment.
+  - **🚀 Code Sync & Hot-Deploy:** Real-time Windows host folder watcher and 1-click code synchronizer to push modified files directly into Linux VMs without touching container dependencies, `.env`, or volumes.
+- **🚀 Code Sync & Hot-Deploy Engine:**
+  - **⚡ Automatic Change Detection:** Recursively inspects project directories on the Windows host and detects modified files compared to the last sync timestamp in milliseconds.
+  - **🛡️ Intelligent Exclusions:** Preserves Linux guest environment by automatically filtering out `node_modules`, `vendor`, `.git`, `.env`, `storage/framework`, `storage/logs`, cache, and temporary build files.
+  - **🔍 Modified Files Inspector:** View exact lists of changed files, their sizes, and edit timestamps before triggering a sync.
+  - **⚡ Post-Sync Commands:** Automatically trigger arbitrary commands inside the VM after sync (e.g. `docker compose restart web`, `npm run build`, etc.).
+  - **📦 1-Click Push & Batch Push:** Sync an individual project or click **`Push All Modified`** to deploy all pending changes across all VMs.
 - **📦 Dual Backup & Deploy Engine:**
   - **⚡ Project & DB Smart Backup:** Automatically discovers project code, dumps MySQL/PostgreSQL databases to SQL, strips `node_modules` and git cache, and transfers a lean archive (`~20MB`) to Windows in ~2 seconds.
   - **🚀 One-Click Deploy / Restore:** Select any historical project backup and click **`Deploy / Restore`** to unpack project files and import the database SQL dump back into the VM automatically.

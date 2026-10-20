@@ -1,10 +1,13 @@
 package main
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	_ "embed"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -65,14 +68,45 @@ type BackupSettings struct {
 	TargetType     string `json:"target_type"`
 }
 
+type SyncTarget struct {
+	ID            string `json:"id"`
+	Name          string `json:"name"`
+	LocalPath     string `json:"local_path"`
+	VMName        string `json:"vm_name"`
+	RemotePath    string `json:"remote_path"`
+	Excludes      string `json:"excludes"`
+	PostSyncCmd   string `json:"post_sync_cmd"`
+	LastSyncedAt  string `json:"last_synced_at"`
+	LastSyncFiles int    `json:"last_sync_files"`
+
+	// Dynamically inspected
+	IsModified    bool   `json:"is_modified"`
+	ModifiedCount int    `json:"modified_count"`
+	LocalExists   bool   `json:"local_exists"`
+	LatestModTime string `json:"latest_mod_time"`
+}
+
+type ChangedFile struct {
+	Path    string `json:"path"`
+	ModTime string `json:"mod_time"`
+	Size    int64  `json:"size"`
+}
+
 type IPStore struct {
 	sync.RWMutex
 	path string
 	data map[string]string
 }
 
+type SyncStore struct {
+	sync.RWMutex
+	path    string
+	targets []SyncTarget
+}
+
 var (
-	ipStore = &IPStore{data: make(map[string]string)}
+	ipStore   = &IPStore{data: make(map[string]string)}
+	syncStore = &SyncStore{}
 
 	activeJobsMu sync.RWMutex
 	activeJobs   = make(map[string]*JobStatus)
@@ -144,6 +178,450 @@ func (s *IPStore) All() map[string]string {
 	}
 	return res
 }
+
+// ----------------- SYNC STORE -----------------
+
+func initSyncStore() {
+	exe, err := os.Executable()
+	if err != nil {
+		syncStore.path = "sync_targets.json"
+	} else {
+		syncStore.path = filepath.Join(filepath.Dir(exe), "sync_targets.json")
+	}
+
+	raw, err := os.ReadFile(syncStore.path)
+	if err == nil {
+		var list []SyncTarget
+		if json.Unmarshal(raw, &list) == nil && len(list) > 0 {
+			syncStore.targets = list
+			return
+		}
+	}
+
+	// Default targets auto-detected from C:\devs
+	defaultExcludes := "node_modules, .git, vendor, .env, .next, dist, build, .venv, __pycache__, cache, tmp, .idea, .vscode, storage/framework, storage/logs"
+	candidates := []struct {
+		ID         string
+		Name       string
+		LocalPath  string
+		VMName     string
+		RemotePath string
+	}{
+		{"chunkly", "Chunkly", `C:\devs\chunklen\Chunkly`, "chunklen", "/home/ubuntu/Chunkly"},
+		{"aicatalog", "AI Catalog", `C:\devs\aicatalog\aicatalog.lc`, "aicatalog", "/home/ubuntu/aicatalog.lc"},
+		{"u0life", "u0life", `C:\devs\u0life\u0life`, "u0life-beta", "/home/ubuntu/u0life"},
+		{"rx2go", "rx2go", `C:\devs\rx2go`, "rx2go", "/home/ubuntu/rx2go"},
+	}
+
+	for _, c := range candidates {
+		if _, err := os.Stat(c.LocalPath); err == nil {
+			syncStore.targets = append(syncStore.targets, SyncTarget{
+				ID:         c.ID,
+				Name:       c.Name,
+				LocalPath:  c.LocalPath,
+				VMName:     c.VMName,
+				RemotePath: c.RemotePath,
+				Excludes:   defaultExcludes,
+			})
+		}
+	}
+	_ = syncStore.saveToFile()
+}
+
+func (s *SyncStore) saveToFile() error {
+	raw, err := json.MarshalIndent(s.targets, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(s.path, raw, 0644)
+}
+
+func (s *SyncStore) All() []SyncTarget {
+	s.RLock()
+	defer s.RUnlock()
+	copied := make([]SyncTarget, len(s.targets))
+	copy(copied, s.targets)
+	for i := range copied {
+		inspectSyncTarget(&copied[i])
+	}
+	return copied
+}
+
+func (s *SyncStore) Get(id string) (SyncTarget, bool) {
+	s.RLock()
+	defer s.RUnlock()
+	for _, t := range s.targets {
+		if t.ID == id {
+			inspected := t
+			inspectSyncTarget(&inspected)
+			return inspected, true
+		}
+	}
+	return SyncTarget{}, false
+}
+
+func (s *SyncStore) Save(target SyncTarget) error {
+	s.Lock()
+	defer s.Unlock()
+
+	if target.ID == "" {
+		target.ID = fmt.Sprintf("tgt_%d", time.Now().UnixNano())
+	}
+	if target.Excludes == "" {
+		target.Excludes = "node_modules, .git, vendor, .env, .next, dist, build, .venv, __pycache__, cache, tmp, .idea, .vscode, storage/framework, storage/logs"
+	}
+
+	found := false
+	for i, t := range s.targets {
+		if t.ID == target.ID {
+			target.LastSyncedAt = t.LastSyncedAt
+			target.LastSyncFiles = t.LastSyncFiles
+			s.targets[i] = target
+			found = true
+			break
+		}
+	}
+	if !found {
+		s.targets = append(s.targets, target)
+	}
+
+	return s.saveToFile()
+}
+
+func (s *SyncStore) Delete(id string) error {
+	s.Lock()
+	defer s.Unlock()
+
+	var updated []SyncTarget
+	for _, t := range s.targets {
+		if t.ID != id {
+			updated = append(updated, t)
+		}
+	}
+	s.targets = updated
+	return s.saveToFile()
+}
+
+func (s *SyncStore) UpdateLastSync(id string, filesCount int) error {
+	s.Lock()
+	defer s.Unlock()
+
+	for i, t := range s.targets {
+		if t.ID == id {
+			s.targets[i].LastSyncedAt = time.Now().Format("2006-01-02 15:04:05")
+			s.targets[i].LastSyncFiles = filesCount
+			return s.saveToFile()
+		}
+	}
+	return nil
+}
+
+func parseSyncTime(str string) time.Time {
+	if str == "" {
+		return time.Time{}
+	}
+	if t, err := time.Parse(time.RFC3339, str); err == nil {
+		return t
+	}
+	if t, err := time.Parse("2006-01-02 15:04:05", str); err == nil {
+		return t
+	}
+	return time.Time{}
+}
+
+func shouldExclude(name, relPath string, isDir bool, cleanExcludes []string) bool {
+	nameLower := strings.ToLower(name)
+	relLower := strings.ToLower(filepath.ToSlash(relPath))
+
+	for _, ex := range cleanExcludes {
+		ex = strings.TrimSpace(strings.ToLower(ex))
+		if ex == "" {
+			continue
+		}
+		if nameLower == ex {
+			return true
+		}
+		if isDir && (nameLower == ex || strings.HasPrefix(nameLower, ex)) {
+			return true
+		}
+		if strings.Contains(ex, "/") {
+			if strings.HasPrefix(relLower, ex) || strings.Contains(relLower, "/"+ex) {
+				return true
+			}
+		}
+		parts := strings.Split(relLower, "/")
+		for _, p := range parts {
+			if p == ex {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func inspectSyncTarget(target *SyncTarget) {
+	info, err := os.Stat(target.LocalPath)
+	if err != nil || !info.IsDir() {
+		target.LocalExists = false
+		target.IsModified = false
+		return
+	}
+	target.LocalExists = true
+
+	lastSync := parseSyncTime(target.LastSyncedAt)
+	excludeTokens := strings.Split(target.Excludes, ",")
+	var cleanExcludes []string
+	for _, ex := range excludeTokens {
+		trimmed := strings.TrimSpace(strings.ToLower(ex))
+		if trimmed != "" {
+			cleanExcludes = append(cleanExcludes, trimmed)
+		}
+	}
+
+	modifiedCount := 0
+	var maxMod time.Time
+
+	_ = filepath.WalkDir(target.LocalPath, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		rel, err := filepath.Rel(target.LocalPath, path)
+		if err != nil || rel == "." {
+			return nil
+		}
+		isDir := d.IsDir()
+		name := d.Name()
+		if shouldExclude(name, rel, isDir, cleanExcludes) {
+			if isDir {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if isDir {
+			return nil
+		}
+		finfo, err := d.Info()
+		if err != nil || !finfo.Mode().IsRegular() {
+			return nil
+		}
+
+		mod := finfo.ModTime()
+		if mod.After(maxMod) {
+			maxMod = mod
+		}
+
+		if lastSync.IsZero() || mod.After(lastSync) {
+			modifiedCount++
+		}
+		return nil
+	})
+
+	target.ModifiedCount = modifiedCount
+	target.IsModified = (modifiedCount > 0)
+	if !maxMod.IsZero() {
+		target.LatestModTime = maxMod.Format("2006-01-02 15:04:05")
+	}
+}
+
+func getChangedFiles(target SyncTarget) []ChangedFile {
+	info, err := os.Stat(target.LocalPath)
+	if err != nil || !info.IsDir() {
+		return []ChangedFile{}
+	}
+
+	lastSync := parseSyncTime(target.LastSyncedAt)
+	excludeTokens := strings.Split(target.Excludes, ",")
+	var cleanExcludes []string
+	for _, ex := range excludeTokens {
+		trimmed := strings.TrimSpace(strings.ToLower(ex))
+		if trimmed != "" {
+			cleanExcludes = append(cleanExcludes, trimmed)
+		}
+	}
+
+	var changed []ChangedFile
+	_ = filepath.WalkDir(target.LocalPath, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		rel, err := filepath.Rel(target.LocalPath, path)
+		if err != nil || rel == "." {
+			return nil
+		}
+		isDir := d.IsDir()
+		name := d.Name()
+		if shouldExclude(name, rel, isDir, cleanExcludes) {
+			if isDir {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if isDir {
+			return nil
+		}
+
+		finfo, err := d.Info()
+		if err != nil || !finfo.Mode().IsRegular() {
+			return nil
+		}
+
+		mod := finfo.ModTime()
+		if lastSync.IsZero() || mod.After(lastSync) {
+			changed = append(changed, ChangedFile{
+				Path:    filepath.ToSlash(rel),
+				ModTime: mod.Format("2006-01-02 15:04:05"),
+				Size:    finfo.Size(),
+			})
+		}
+		return nil
+	})
+
+	sort.Slice(changed, func(i, j int) bool {
+		return changed[i].ModTime > changed[j].ModTime
+	})
+
+	return changed
+}
+
+func pushCodeToVM(target SyncTarget) (int, error) {
+	info, err := os.Stat(target.LocalPath)
+	if err != nil || !info.IsDir() {
+		return 0, fmt.Errorf("local folder does not exist: %s", target.LocalPath)
+	}
+
+	excludeTokens := strings.Split(target.Excludes, ",")
+	var cleanExcludes []string
+	for _, ex := range excludeTokens {
+		trimmed := strings.TrimSpace(strings.ToLower(ex))
+		if trimmed != "" {
+			cleanExcludes = append(cleanExcludes, trimmed)
+		}
+	}
+
+	tmpTar, err := os.CreateTemp("", fmt.Sprintf("hv_sync_%s_*.tar.gz", target.ID))
+	if err != nil {
+		return 0, fmt.Errorf("failed creating temp archive: %w", err)
+	}
+	tmpTarPath := tmpTar.Name()
+	defer os.Remove(tmpTarPath)
+
+	gzWriter := gzip.NewWriter(tmpTar)
+	tarWriter := tar.NewWriter(gzWriter)
+
+	fileCount := 0
+
+	err = filepath.WalkDir(target.LocalPath, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		rel, err := filepath.Rel(target.LocalPath, path)
+		if err != nil || rel == "." {
+			return nil
+		}
+		isDir := d.IsDir()
+		name := d.Name()
+		if shouldExclude(name, rel, isDir, cleanExcludes) {
+			if isDir {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		finfo, err := d.Info()
+		if err != nil {
+			return nil
+		}
+		if !isDir && !finfo.Mode().IsRegular() {
+			return nil
+		}
+
+		header, err := tar.FileInfoHeader(finfo, finfo.Name())
+		if err != nil {
+			return nil
+		}
+		header.Name = filepath.ToSlash(rel)
+		if isDir {
+			header.Name += "/"
+			header.Mode = 0755
+		} else {
+			header.Mode = 0644
+		}
+
+		if err := tarWriter.WriteHeader(header); err != nil {
+			return err
+		}
+
+		if !isDir {
+			f, err := os.Open(path)
+			if err != nil {
+				return nil
+			}
+			_, _ = io.Copy(tarWriter, f)
+			f.Close()
+			fileCount++
+		}
+		return nil
+	})
+
+	_ = tarWriter.Close()
+	_ = gzWriter.Close()
+	_ = tmpTar.Close()
+
+	if err != nil {
+		return 0, fmt.Errorf("archive creation error: %w", err)
+	}
+
+	if fileCount == 0 {
+		return 0, fmt.Errorf("no files to sync after applying excludes")
+	}
+
+	remoteTar := fmt.Sprintf("/tmp/hv_sync_%s_%d.tar.gz", target.ID, time.Now().Unix())
+	transferCmd := exec.Command("multipass", "transfer", tmpTarPath, fmt.Sprintf("%s:%s", target.VMName, remoteTar))
+	transferCmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	out, err := transferCmd.CombinedOutput()
+	if err != nil {
+		return 0, fmt.Errorf("multipass transfer failed: %s (%w)", strings.TrimSpace(string(out)), err)
+	}
+
+	remoteDest := target.RemotePath
+	if remoteDest == "" {
+		remoteDest = fmt.Sprintf("/home/ubuntu/%s", target.Name)
+	}
+
+	remoteScript := fmt.Sprintf(`
+set -e
+TARGET_DIR="%s"
+ARCHIVE="%s"
+POST_CMD="%s"
+
+if [ -w "$TARGET_DIR" ] || [ ! -e "$TARGET_DIR" ]; then
+    mkdir -p "$TARGET_DIR"
+    tar -xzf "$ARCHIVE" -C "$TARGET_DIR"
+else
+    sudo mkdir -p "$TARGET_DIR"
+    sudo tar -xzf "$ARCHIVE" -C "$TARGET_DIR"
+fi
+rm -f "$ARCHIVE"
+
+if [ -n "$POST_CMD" ]; then
+    cd "$TARGET_DIR"
+    eval "$POST_CMD"
+fi
+`, remoteDest, remoteTar, target.PostSyncCmd)
+
+	b64 := base64.StdEncoding.EncodeToString([]byte(remoteScript))
+	execCmd := exec.Command("multipass", "exec", target.VMName, "--", "bash", "-c", fmt.Sprintf("echo %s | base64 -d | bash", b64))
+	execCmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	out, err = execCmd.CombinedOutput()
+	if err != nil {
+		return 0, fmt.Errorf("multipass remote unpack failed: %s (%w)", strings.TrimSpace(string(out)), err)
+	}
+
+	_ = syncStore.UpdateLastSync(target.ID, fileCount)
+	return fileCount, nil
+}
+
+// ----------------- BACKUP ENGINE -----------------
 
 func getBackupsDir() string {
 	exe, err := os.Executable()
@@ -443,8 +921,6 @@ func getVMs() ([]VMInfo, error) {
 	return list, nil
 }
 
-// ----------------- BACKUP ENGINE -----------------
-
 func backupProjectAndDB(vmName string) (string, error) {
 	timestamp := time.Now().Format("20060102_150405")
 	script := fmt.Sprintf(`
@@ -696,7 +1172,6 @@ func listBackups() ([]BackupItem, error) {
 		}
 	}
 
-	// Sort newest first
 	sort.Slice(items, func(i, j int) bool {
 		return items[i].CreatedAt > items[j].CreatedAt
 	})
@@ -756,7 +1231,7 @@ func launchAppWindow(url string) {
 	if browser != "" {
 		userData := filepath.Join(os.TempDir(), "hv-monitor-profile")
 		appArg := fmt.Sprintf("--app=%s", url)
-		sizeArg := "--window-size=1200,820"
+		sizeArg := "--window-size=1260,860"
 		profileArg := fmt.Sprintf("--user-data-dir=%s", userData)
 		appIdArg := "--app-id=HVMonitor"
 
@@ -773,6 +1248,7 @@ func launchAppWindow(url string) {
 func main() {
 	ensureElevated()
 	initIPStore()
+	initSyncStore()
 	getBackupsDir()
 	startBackupScheduler()
 
@@ -1034,6 +1510,134 @@ func main() {
 			http.Error(w, err.Error(), 500)
 			return
 		}
+		w.Write([]byte(`{"status":"ok"}`))
+	})
+
+	// ----------------- CODE SYNC APIS -----------------
+
+	http.HandleFunc("/api/sync/targets", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		targets := syncStore.All()
+		json.NewEncoder(w).Encode(targets)
+	})
+
+	http.HandleFunc("/api/sync/save", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		var target SyncTarget
+		if err := json.NewDecoder(r.Body).Decode(&target); err != nil {
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		if err := syncStore.Save(target); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	})
+
+	http.HandleFunc("/api/sync/delete", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		id := r.URL.Query().Get("id")
+		if id == "" {
+			http.Error(w, "missing id", 400)
+			return
+		}
+		if err := syncStore.Delete(id); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	})
+
+	http.HandleFunc("/api/sync/changed-files", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		id := r.URL.Query().Get("id")
+		target, ok := syncStore.Get(id)
+		if !ok {
+			http.Error(w, "target not found", 404)
+			return
+		}
+		files := getChangedFiles(target)
+		json.NewEncoder(w).Encode(files)
+	})
+
+	http.HandleFunc("/api/sync/push", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		id := r.URL.Query().Get("id")
+		target, ok := syncStore.Get(id)
+		if !ok {
+			http.Error(w, "target not found", 404)
+			return
+		}
+
+		jobID := fmt.Sprintf("sync_%s_%d", target.ID, time.Now().Unix())
+		setJob(jobID, target.VMName, "sync", "running", fmt.Sprintf("Syncing %s code to %s:%s...", target.Name, target.VMName, target.RemotePath))
+
+		go func() {
+			count, err := pushCodeToVM(target)
+			if err != nil {
+				setJob(jobID, target.VMName, "sync", "error", err.Error())
+			} else {
+				setJob(jobID, target.VMName, "sync", "completed", fmt.Sprintf("Synced %d files to %s:%s", count, target.VMName, target.RemotePath))
+			}
+		}()
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"job_id": jobID,
+			"status": "started",
+		})
+	})
+
+	http.HandleFunc("/api/sync/push-all", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		targets := syncStore.All()
+		var modifiedTargets []SyncTarget
+		for _, t := range targets {
+			if t.IsModified && t.LocalExists {
+				modifiedTargets = append(modifiedTargets, t)
+			}
+		}
+
+		if len(modifiedTargets) == 0 {
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"status":  "ok",
+				"message": "No modified projects found",
+				"count":   0,
+			})
+			return
+		}
+
+		jobID := fmt.Sprintf("sync_all_%d", time.Now().Unix())
+		setJob(jobID, "All VMs", "sync", "running", fmt.Sprintf("Syncing %d modified projects...", len(modifiedTargets)))
+
+		go func() {
+			successCount := 0
+			for _, t := range modifiedTargets {
+				_, err := pushCodeToVM(t)
+				if err == nil {
+					successCount++
+				}
+			}
+			setJob(jobID, "All VMs", "sync", "completed", fmt.Sprintf("Batch sync completed: %d/%d projects updated", successCount, len(modifiedTargets)))
+		}()
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"job_id": jobID,
+			"status": "started",
+			"count":  len(modifiedTargets),
+		})
+	})
+
+	http.HandleFunc("/api/sync/open-folder", func(w http.ResponseWriter, r *http.Request) {
+		id := r.URL.Query().Get("id")
+		target, ok := syncStore.Get(id)
+		if !ok || target.LocalPath == "" {
+			http.Error(w, "target not found", 404)
+			return
+		}
+		exec.Command("explorer.exe", target.LocalPath).Start()
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 

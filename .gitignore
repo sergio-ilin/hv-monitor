@@ -8,9 +8,11 @@
 # Local configs & runtime state
 ip_config.json
 backup_settings.json
+sync_targets.json
 backups/
 profile/
 *-profile/
+*.bak
 
 # Windows OS metadata
 Thumbs.db

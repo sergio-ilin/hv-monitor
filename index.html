@@ -42,7 +42,7 @@
     }
 
     .container {
-      max-width: 1180px;
+      max-width: 1220px;
       margin: 0 auto;
     }
 
@@ -65,26 +65,26 @@
       width: 36px;
       height: 36px;
       border-radius: 9px;
-      box-shadow: 0 0 16px rgba(59, 130, 246, 0.4);
+      box-shadow: 0 0 16px var(--accent-glow);
     }
-    .title-group h1 {
-      font-size: 22px;
+    h1 {
+      font-size: 20px;
       font-weight: 800;
-      letter-spacing: -0.5px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #fff 40%, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
     /* Tab Navigation */
     .nav-tabs {
       display: flex;
       align-items: center;
-      gap: 6px;
       background: rgba(17, 24, 39, 0.9);
       border: 1px solid var(--card-border);
-      padding: 5px;
       border-radius: 12px;
+      padding: 4px;
+      gap: 4px;
     }
     .nav-tab {
       background: transparent;
@@ -95,10 +95,11 @@
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
-      display: inline-flex;
+      display: flex;
       align-items: center;
       gap: 8px;
-      transition: all 0.15s ease;
+      transition: all 0.2s ease;
+      font-family: inherit;
     }
     .nav-tab:hover {
       color: var(--text);
@@ -107,203 +108,217 @@
     .nav-tab.active {
       color: #fff;
       background: var(--accent);
-      box-shadow: 0 0 16px rgba(59, 130, 246, 0.35);
+      box-shadow: 0 0 14px var(--accent-glow);
+    }
+
+    .nav-badge {
+      background: #f59e0b;
+      color: #0f172a;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 1px 7px;
+      border-radius: 999px;
+      margin-left: 2px;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
     }
 
     .controls {
       display: flex;
-      align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
-
     .btn {
-      background: #1e293b;
-      color: #fff;
+      background: rgba(255, 255, 255, 0.06);
       border: 1px solid var(--card-border);
+      color: var(--text);
       padding: 8px 14px;
       border-radius: 8px;
-      cursor: pointer;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
-      display: inline-flex;
+      cursor: pointer;
+      display: flex;
       align-items: center;
       gap: 6px;
       transition: all 0.15s ease;
+      font-family: inherit;
     }
-    .btn:hover { background: #334155; transform: translateY(-1px); }
-
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+    .btn-primary:hover {
+      background: #2563eb;
+    }
     .btn-restore-all {
-      background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(59, 130, 246, 0.25));
-      border: 1px solid rgba(6, 182, 212, 0.4);
-      color: #67e8f9;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #34d399;
     }
     .btn-restore-all:hover {
-      background: linear-gradient(135deg, rgba(6, 182, 212, 0.35), rgba(59, 130, 246, 0.4));
-      box-shadow: 0 0 16px rgba(6, 182, 212, 0.25);
+      background: rgba(16, 185, 129, 0.25);
+      box-shadow: 0 0 12px var(--success-glow);
     }
-
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.25);
+      color: #f87171;
+    }
     .btn-danger:hover {
       background: rgba(239, 68, 68, 0.25);
-      border-color: var(--danger);
-      color: var(--danger);
+    }
+    .btn-warning {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.35);
+      color: #fbbf24;
+    }
+    .btn-warning:hover {
+      background: rgba(245, 158, 11, 0.25);
+    }
+    .btn-backups {
+      background: rgba(139, 92, 246, 0.15);
+      border-color: rgba(139, 92, 246, 0.3);
+      color: #c4b5fd;
+    }
+    .btn-backups:hover {
+      background: rgba(139, 92, 246, 0.25);
+      box-shadow: 0 0 12px rgba(139, 92, 246, 0.35);
     }
 
-    /* Active Jobs Banner */
+    /* Active Jobs Notification Bar */
     #jobs-bar {
       display: none;
-      background: rgba(59, 130, 246, 0.15);
-      border: 1px solid rgba(59, 130, 246, 0.35);
+      background: linear-gradient(90deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+      border: 1px solid rgba(59, 130, 246, 0.3);
       border-radius: 10px;
-      padding: 10px 18px;
-      margin-bottom: 18px;
+      padding: 10px 16px;
+      margin-bottom: 16px;
       font-size: 13px;
-      font-weight: 600;
-      color: #93c5fd;
+      color: #60a5fa;
       align-items: center;
       justify-content: space-between;
-      animation: pulseAlert 2s infinite;
+      animation: pulseBar 2s infinite ease-in-out;
+    }
+    @keyframes pulseBar {
+      0%, 100% { border-color: rgba(59, 130, 246, 0.3); }
+      50% { border-color: rgba(139, 92, 246, 0.7); }
     }
 
-    /* Tab Content Pages */
+    /* Tab Page Containers */
     .tab-page {
       display: none;
     }
     .tab-page.active {
       display: block;
-      animation: fadeIn 0.15s ease-out;
+      animation: fadeIn 0.2s ease;
     }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(4px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Summary Bar */
+    /* Tab 1: Global Summary Cards */
     .summary-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
       gap: 14px;
-      margin-bottom: 22px;
+      margin-bottom: 24px;
     }
     .summary-card {
       background: var(--card-bg);
-      backdrop-filter: blur(12px);
       border: 1px solid var(--card-border);
       border-radius: 12px;
-      padding: 16px 20px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      padding: 16px;
+      backdrop-filter: blur(12px);
     }
     .summary-label {
+      color: var(--text-muted);
       font-size: 11px;
       font-weight: 700;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: var(--text-muted);
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
     .summary-val {
-      font-size: 22px;
+      font-size: 24px;
       font-weight: 800;
-      letter-spacing: -0.5px;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
     }
 
-    /* VM Cards */
-    .vm-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 14px;
+    /* Tab 1: VM Cards */
+    .vm-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
     .vm-card {
       background: var(--card-bg);
-      backdrop-filter: blur(14px);
       border: 1px solid var(--card-border);
-      border-radius: 14px;
-      padding: 18px 22px;
+      border-radius: 12px;
+      padding: 16px 20px;
       display: grid;
-      grid-template-columns: 240px 1.4fr 1.2fr auto;
+      grid-template-columns: 240px 220px 1fr 140px;
       align-items: center;
       gap: 20px;
+      backdrop-filter: blur(12px);
       transition: all 0.2s ease;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
     }
     .vm-card:hover {
       border-color: var(--card-hover);
-      box-shadow: 0 6px 24px rgba(59, 130, 246, 0.15);
-      transform: translateY(-2px);
+      box-shadow: 0 6px 20px -4px rgba(0, 0, 0, 0.3);
     }
-
     .vm-identity {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
     }
     .vm-title {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
-    .status-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-    }
-    .status-Running { background: var(--success); box-shadow: 0 0 10px var(--success); }
-    .status-Off { background: #64748b; }
-
     .vm-sub {
       font-size: 12px;
       color: var(--text-muted);
-      font-family: 'JetBrains Mono', monospace;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .status-Running {
+      background: var(--success);
+      box-shadow: 0 0 10px var(--success-glow);
+    }
+    .status-Off {
+      background: #64748b;
     }
 
-    .ip-badges {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 6px;
-      margin-top: 4px;
-    }
-    .ip-badge {
-      background: rgba(59, 130, 246, 0.12);
-      color: #60a5fa;
-      border: 1px solid rgba(59, 130, 246, 0.25);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      padding: 3px 8px;
-      border-radius: 6px;
-      cursor: pointer;
-      user-select: all;
-      transition: all 0.15s;
-    }
-    .ip-badge:hover {
-      background: rgba(59, 130, 246, 0.25);
-      box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
-    }
-    .ip-badge.is-static {
-      background: rgba(6, 182, 212, 0.15);
-      color: #22d3ee;
-      border-color: rgba(6, 182, 212, 0.4);
-      font-weight: 600;
-    }
-
-    /* Live Analytics Chart Canvas */
+    /* Canvas Analytics Sparkline */
     .chart-container {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
     }
     .sparkline-canvas {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
       width: 100%;
       height: 48px;
-      background: #111827;
-      border-radius: 6px;
-      border: 1px solid rgba(255, 255, 255, 0.05);
     }
     .chart-meta {
       display: flex;
       justify-content: space-between;
-      font-size: 11px;
+      font-size: 10px;
       color: var(--text-muted);
       font-family: 'JetBrains Mono', monospace;
     }
@@ -311,92 +326,147 @@
     .metric-group {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
     }
     .metric-row {
       display: flex;
       align-items: center;
       gap: 12px;
-      font-size: 13px;
+      font-size: 12px;
     }
     .metric-name {
-      width: 45px;
+      width: 32px;
       color: var(--text-muted);
-      font-weight: 600;
-      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
     }
     .bar-wrap {
       flex: 1;
-      height: 7px;
-      background: #1e293b;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.08);
       border-radius: 999px;
       overflow: hidden;
     }
     .bar-fill {
       height: 100%;
       border-radius: 999px;
-      transition: width 0.3s ease;
+      transition: width 0.4s ease;
     }
-    .bar-cpu { background: linear-gradient(90deg, #3b82f6, #8b5cf6); }
-    .bar-ram { background: linear-gradient(90deg, #10b981, #06b6d4); }
+    .bar-cpu {
+      background: linear-gradient(90deg, #3b82f6, #06b6d4);
+    }
+    .bar-ram {
+      background: linear-gradient(90deg, #8b5cf6, #ec4899);
+    }
     .metric-num {
-      width: 60px;
+      width: 55px;
       text-align: right;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
       font-weight: 600;
+    }
+
+    .ip-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .ip-badge {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #cbd5e1;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .ip-badge:hover {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .ip-badge.is-static {
+      border-color: rgba(16, 185, 129, 0.4);
+      background: rgba(16, 185, 129, 0.12);
+      color: #34d399;
     }
 
     .vm-actions {
       display: flex;
-      align-items: center;
-      gap: 8px;
+      justify-content: flex-end;
+      gap: 6px;
     }
     .btn-action {
-      background: #1e293b;
+      background: transparent;
       border: 1px solid var(--card-border);
-      color: var(--text);
-      padding: 7px 12px;
-      border-radius: 8px;
+      color: var(--text-muted);
+      padding: 6px 10px;
+      border-radius: 6px;
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.15s;
+      transition: all 0.15s ease;
     }
     .btn-action:hover {
-      background: #334155;
-      border-color: #64748b;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .btn-action.danger:hover {
+      color: #f87171;
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.3);
     }
 
-    /* Tab 2: IP Table */
+    /* Tab 2: IP Management Table */
     .ip-table-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: 14px;
       padding: 20px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(12px);
     }
     .ip-gw-banner {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: #111827;
-      border: 1px solid var(--card-border);
-      padding: 14px 20px;
-      border-radius: 10px;
-      margin-bottom: 20px;
     }
+    .gateway-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+    .gateway-pill.healthy {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .gateway-pill.unhealthy {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
     .ip-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 13px;
+      text-align: left;
     }
     .ip-table th {
-      text-align: left;
       padding: 10px 14px;
-      color: var(--text-muted);
       font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
       text-transform: uppercase;
+      letter-spacing: 0.05em;
       border-bottom: 1px solid var(--card-border);
     }
     .ip-table td {
@@ -502,6 +572,267 @@
       box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
     }
 
+    /* Tab 4: Code Sync Styles */
+    .sync-top-bar {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 18px 22px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .sync-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(560px, 1fr));
+      gap: 18px;
+    }
+    .sync-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      backdrop-filter: blur(12px);
+      transition: all 0.2s ease;
+      position: relative;
+    }
+    .sync-card:hover {
+      border-color: rgba(59, 130, 246, 0.35);
+      box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.35);
+    }
+    .sync-card.is-modified-card {
+      border-color: rgba(245, 158, 11, 0.4);
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.08);
+    }
+
+    .sync-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .sync-card-title {
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sync-badge-dirty {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      animation: syncPulse 2s infinite ease-in-out;
+    }
+    @keyframes syncPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+      50% { box-shadow: 0 0 10px 2px rgba(245, 158, 11, 0.3); }
+    }
+    .sync-badge-clean {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sync-badge-never {
+      background: rgba(148, 163, 184, 0.12);
+      color: #94a3b8;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sync-badge-missing {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .sync-paths-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sync-path-row {
+      background: rgba(0, 0, 0, 0.28);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 7px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+    .sync-path-label {
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      min-width: 60px;
+    }
+    .sync-path-val {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      color: #cbd5e1;
+    }
+
+    .sync-meta-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+      align-items: center;
+    }
+
+    .sync-card-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-box {
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 16px;
+      width: 90%;
+      max-width: 580px;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 24px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+      transform: translateY(15px);
+      transition: transform 0.2s ease;
+    }
+    .modal-overlay.active .modal-box {
+      transform: translateY(0);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .modal-title {
+      font-size: 17px;
+      font-weight: 700;
+    }
+    .modal-field {
+      margin-bottom: 14px;
+    }
+    .modal-field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 6px;
+    }
+    .modal-input {
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid var(--card-border);
+      color: #fff;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+      font-family: inherit;
+    }
+    .modal-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .changed-files-box {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      max-height: 320px;
+      overflow-y: auto;
+      margin: 12px 0;
+    }
+    .changed-file-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+    .changed-file-row:last-child {
+      border-bottom: none;
+    }
+
     .toast {
       position: fixed;
       bottom: 24px;
@@ -528,6 +859,7 @@
     @media (max-width: 950px) {
       .vm-card { grid-template-columns: 1fr; gap: 16px; }
       .backup-top-grid { grid-template-columns: 1fr; }
+      .sync-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -558,6 +890,9 @@
       <button class="nav-tab" onclick="switchTab('backups')">
         📦 Backups & Recovery
       </button>
+      <button class="nav-tab" onclick="switchTab('sync')">
+        🚀 Code Sync <span id="sync-count-badge" class="nav-badge" style="display:none;">0</span>
+      </button>
     </nav>
 
     <div class="controls">
@@ -574,23 +909,21 @@
         <div class="summary-val" id="stat-total">-</div>
       </div>
       <div class="summary-card">
-        <div class="summary-label">Online</div>
-        <div class="summary-val" style="color: var(--success);" id="stat-running">-</div>
+        <div class="summary-label">Running</div>
+        <div class="summary-val" id="stat-running" style="color: var(--success);">-</div>
       </div>
       <div class="summary-card">
         <div class="summary-label">Allocated RAM</div>
-        <div class="summary-val" style="color: var(--purple);" id="stat-ram">-</div>
+        <div class="summary-val" id="stat-ram">-</div>
       </div>
       <div class="summary-card">
-        <div class="summary-label">Average CPU Load</div>
-        <div class="summary-val" style="color: var(--cyan);" id="stat-cpu">0%</div>
+        <div class="summary-label">Avg CPU Usage</div>
+        <div class="summary-val" id="stat-cpu">-</div>
       </div>
     </div>
 
-    <div id="vm-list" class="vm-grid">
-      <div style="text-align:center; padding: 40px; color: var(--text-muted);">
-        Synchronizing Hyper-V machines & metrics...
-      </div>
+    <div class="vm-list" id="vm-list">
+      <div style="text-align: center; padding: 40px; color: var(--text-muted);">Loading virtual machines...</div>
     </div>
   </div>
 
@@ -601,15 +934,15 @@
         <div>
           <div style="font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px;">
             <span>🖥️ Host Virtual Switch Gateway</span>
-            <span id="tab2-gw-status" class="gateway-pill healthy">10.10.10.1 🟢</span>
+            <span id="tab2-gw-status" class="gateway-pill healthy">10.10.10.1 🟢 Active</span>
           </div>
-          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
-            Adapter: vEthernet (Default Switch) • Enables communication between Windows and VMs on 10.10.10.X
-          </div>
+          <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+            The static dev gateway IP on Windows vEthernet (Default Switch). If disconnected after reboot, click Restore.
+          </p>
         </div>
-        <div style="display: flex; gap: 10px;">
-          <button class="btn btn-warning" onclick="restoreGateway()">⚡ Fix Host Gateway</button>
-          <button class="btn btn-restore-all" onclick="restoreAllIPs()">⚡ Restore All IPs</button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-restore-all" onclick="restoreGateway()">⚡ Restore Host Gateway</button>
+          <button class="btn btn-warning" onclick="restoreAllIPs()">⚡ Restore Host & All VMs</button>
         </div>
       </div>
 
@@ -617,15 +950,15 @@
         <thead>
           <tr>
             <th>Virtual Machine</th>
-            <th>Dynamic DHCP IP</th>
-            <th>Static IPv4 Address</th>
-            <th>CIDR</th>
-            <th>Verification Status</th>
-            <th>Actions</th>
+            <th>Current DHCP IP</th>
+            <th>Static IP Config</th>
+            <th>Subnet</th>
+            <th>Status</th>
+            <th style="text-align: right;">Action</th>
           </tr>
         </thead>
         <tbody id="ip-table-body">
-          <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 24px;">Loading network configurations...</td></tr>
+          <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 20px;">Loading network configuration...</td></tr>
         </tbody>
       </table>
     </div>
@@ -737,12 +1070,128 @@
       </table>
     </div>
   </div>
+
+  <!-- ==================== TAB 4: CODE SYNC ==================== -->
+  <div id="tab-sync" class="tab-page">
+    <div class="sync-top-bar">
+      <div>
+        <div style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+          <span>🚀 Local Code Sync & Hot-Deploy</span>
+          <span id="sync-summary-pill" class="gateway-pill healthy" style="font-size: 11px;">Scanning projects...</span>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">
+          Monitors local project folders on Windows and deploys changes to Linux VMs in seconds without overwriting container dependencies or database volumes.
+        </p>
+      </div>
+
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <button class="btn btn-restore-all" id="btn-sync-all" onclick="syncAllModifiedProjects()" style="box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);">
+          🚀 Push All Modified
+        </button>
+        <button class="btn btn-primary" onclick="openAddSyncModal()">
+          ➕ Add Project Mapping
+        </button>
+        <button class="btn" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--card-border);" onclick="fetchSyncTargets(true)">
+          🔄 Scan Now
+        </button>
+      </div>
+    </div>
+
+    <!-- Grid of Sync Cards -->
+    <div id="sync-projects-list" class="sync-grid">
+      <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
+        Scanning project directories...
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal: Add / Edit Sync Target -->
+<div id="sync-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="sync-modal-title">Add Project Mapping</div>
+      <button class="btn" style="padding: 4px 8px;" onclick="closeSyncModal()">✕</button>
+    </div>
+
+    <input type="hidden" id="sync-modal-id">
+
+    <div class="modal-field">
+      <label>Project Display Name</label>
+      <input type="text" id="sync-modal-name" class="modal-input" placeholder="e.g. Chunkly">
+    </div>
+
+    <div class="modal-field">
+      <label>Target Virtual Machine</label>
+      <select id="sync-modal-vm" class="modal-input">
+        <option value="">Select a VM...</option>
+      </select>
+    </div>
+
+    <div class="modal-field">
+      <label>Local Windows Folder Path</label>
+      <input type="text" id="sync-modal-local" class="modal-input" placeholder="e.g. C:\devs\chunklen\Chunkly">
+    </div>
+
+    <div class="modal-field">
+      <label>Remote VM Destination Path</label>
+      <input type="text" id="sync-modal-remote" class="modal-input" placeholder="e.g. /home/ubuntu/Chunkly">
+    </div>
+
+    <div class="modal-field">
+      <label>Exclude Patterns (Comma Separated)</label>
+      <input type="text" id="sync-modal-excludes" class="modal-input" value="node_modules, .git, vendor, .env, .next, dist, build, .venv, __pycache__, cache, tmp, .idea, .vscode, storage/framework, storage/logs">
+      <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+        Protects dependencies, git history, and local environment files from being overwritten.
+      </div>
+    </div>
+
+    <div class="modal-field">
+      <label>Optional Post-Sync Command inside VM</label>
+      <input type="text" id="sync-modal-cmd" class="modal-input" placeholder="e.g. docker compose restart web">
+      <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+        Executed inside the target directory immediately after code unpacking.
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="closeSyncModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSyncModal()">Save Project</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: View Changed Files -->
+<div id="files-modal" class="modal-overlay">
+  <div class="modal-box" style="max-width: 680px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="files-modal-title">Modified Files</div>
+        <div style="font-size: 12px; color: var(--text-muted);" id="files-modal-sub">Files changed since last sync</div>
+      </div>
+      <button class="btn" style="padding: 4px 8px;" onclick="closeFilesModal()">✕</button>
+    </div>
+
+    <div id="files-modal-content" class="changed-files-box">
+      <!-- Changed files rows -->
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="closeFilesModal()">Close</button>
+      <button class="btn btn-restore-all" id="btn-files-push" onclick="pushFromFilesModal()">
+        🚀 Push Changes Now
+      </button>
+    </div>
+  </div>
 </div>
 
 <div id="toast" class="toast"></div>
 
 <script>
   let cachedVMs = [];
+  let cachedSyncTargets = [];
+  let currentPreviewTargetId = null;
   let vmHistory = {}; // vmName -> [cpu1, cpu2, ...]
   const MAX_HISTORY = 16;
 
@@ -766,7 +1215,7 @@
   /* Tabs Navigation */
   function switchTab(tabId) {
     document.querySelectorAll('.nav-tab').forEach((t, i) => {
-      t.classList.toggle('active', ['analytics', 'network', 'backups'][i] === tabId);
+      t.classList.toggle('active', ['analytics', 'network', 'backups', 'sync'][i] === tabId);
     });
     document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
     document.getElementById('tab-' + tabId).classList.add('active');
@@ -776,6 +1225,8 @@
       loadScheduleSettings();
     } else if (tabId === 'network') {
       renderIPTable();
+    } else if (tabId === 'sync') {
+      fetchSyncTargets(false);
     }
   }
 
@@ -1019,44 +1470,62 @@
         body: JSON.stringify({ name, ip, cidr })
       });
       if (res.ok) {
-        showToast(`Static IP ${ip} applied & persisted for ${name}!`);
-        setTimeout(fetchData, 1000);
+        showToast(`IP ${ip} configured successfully!`);
+        setTimeout(fetchData, 1200);
       } else {
         const err = await res.json();
-        showToast('Error: ' + (err.error || 'Failed to apply IP'));
+        showToast('Error: ' + (err.error || 'Failed to set IP'));
       }
     } catch(e) {
-      showToast('Request failed');
+      showToast('Failed to apply static IP');
     }
   }
 
   async function restoreSingleVMIP(name) {
     showToast(`Restoring static IP for ${name}...`);
     try {
-      await fetch(`/api/network/restore-vm-ip?name=${encodeURIComponent(name)}`);
-      showToast(`Static IP restored for ${name}!`);
-      setTimeout(fetchData, 1000);
+      const res = await fetch(`/api/network/restore-vm-ip?name=${encodeURIComponent(name)}`);
+      if (res.ok) {
+        showToast(`Static IP restored for ${name}!`);
+        setTimeout(fetchData, 1000);
+      } else {
+        showToast('Failed to restore static IP');
+      }
     } catch(e) {
-      showToast('Failed to restore VM IP');
+      showToast('Network error restoring IP');
     }
   }
 
-  /* ==================== TAB 3 BACKUPS & RESTORE ==================== */
+  /* Tab 3: Backups & Recovery */
+  function updateManualVMDropdown() {
+    const select = document.getElementById('bk-manual-vm');
+    if (!select) return;
+    const current = select.value;
+    select.innerHTML = cachedVMs.map(vm => `<option value="${vm.name}" ${vm.name === current ? 'selected' : ''}>${vm.name} (${vm.state})</option>`).join('');
+
+    const modalSelect = document.getElementById('sync-modal-vm');
+    if (modalSelect) {
+      const curModal = modalSelect.value;
+      modalSelect.innerHTML = '<option value="">Select a VM...</option>' + cachedVMs.map(vm => `<option value="${vm.name}" ${vm.name === curModal ? 'selected' : ''}>${vm.name} (${vm.state})</option>`).join('');
+    }
+  }
+
   async function loadScheduleSettings() {
     try {
       const res = await fetch('/api/backup/settings');
       const st = await res.json();
       document.getElementById('bk-auto-enabled').checked = !!st.enabled;
-      document.getElementById('bk-interval').value = String(st.interval_hours || 4);
-      document.getElementById('bk-retention').value = String(st.retention_count || 10);
+      document.getElementById('bk-interval').value = st.interval_hours || 4;
+      document.getElementById('bk-retention').value = st.retention_count || 10;
     } catch(e) {}
   }
 
   async function saveScheduleSettings() {
     const enabled = document.getElementById('bk-auto-enabled').checked;
-    const interval_hours = parseInt(document.getElementById('bk-interval').value, 10) || 4;
-    const retention_count = parseInt(document.getElementById('bk-retention').value, 10) || 10;
+    const interval_hours = parseInt(document.getElementById('bk-interval').value) || 4;
+    const retention_count = parseInt(document.getElementById('bk-retention').value) || 10;
 
+    showToast('Saving backup schedule...');
     try {
       const res = await fetch('/api/backup/settings', {
         method: 'POST',
@@ -1064,41 +1533,43 @@
         body: JSON.stringify({ enabled, interval_hours, retention_count, target_type: 'project' })
       });
       if (res.ok) {
-        showToast('Backup schedule & retention policy saved!');
+        showToast('Backup schedule updated successfully!');
       }
     } catch(e) {
       showToast('Failed to save settings');
     }
   }
 
-  function updateManualVMDropdown() {
-    const sel = document.getElementById('bk-manual-vm');
-    if (!sel) return;
-    if (cachedVMs.length === 0) {
-      sel.innerHTML = '<option value="">No machines available</option>';
-      return;
-    }
-    sel.innerHTML = cachedVMs.map(vm => `<option value="${vm.name}">${vm.name} (${vm.state})</option>`).join('');
-  }
-
   async function triggerManualProjectBackup() {
     const vm = document.getElementById('bk-manual-vm').value;
-    if (!vm) return;
-    showToast(`Starting Project & DB backup for ${vm}...`);
+    if (!vm) { showToast('Please select a virtual machine'); return; }
+
+    showToast(`Starting project & DB backup for ${vm}...`);
     try {
-      await fetch(`/api/backup/project?name=${encodeURIComponent(vm)}`, { method: 'POST' });
-      checkJobs();
-    } catch(e) {}
+      const res = await fetch(`/api/backup/project?name=${encodeURIComponent(vm)}`);
+      if (res.ok) {
+        showToast('Backup initiated in background!');
+        checkJobs();
+      }
+    } catch(e) {
+      showToast('Failed to trigger backup');
+    }
   }
 
   async function triggerManualVMExport() {
     const vm = document.getElementById('bk-manual-vm').value;
-    if (!vm) return;
-    showToast(`Starting Full Hyper-V VM export for ${vm}...`);
+    if (!vm) { showToast('Please select a virtual machine'); return; }
+
+    showToast(`Starting full Hyper-V export for ${vm}...`);
     try {
-      await fetch(`/api/backup/vm?name=${encodeURIComponent(vm)}`, { method: 'POST' });
-      checkJobs();
-    } catch(e) {}
+      const res = await fetch(`/api/backup/vm?name=${encodeURIComponent(vm)}`);
+      if (res.ok) {
+        showToast('Export initiated in background!');
+        checkJobs();
+      }
+    } catch(e) {
+      showToast('Failed to trigger export');
+    }
   }
 
   async function loadBackupsTable() {
@@ -1181,6 +1652,315 @@
     }
   }
 
+  /* ==================== TAB 4: CODE SYNC ENGINE ==================== */
+
+  async function fetchSyncTargets(showToastFeedback) {
+    if (showToastFeedback) showToast('Scanning local project folders for changes...');
+    try {
+      const res = await fetch('/api/sync/targets');
+      const targets = await res.json();
+      cachedSyncTargets = targets;
+      renderSyncCards(targets);
+
+      let totalModified = 0;
+      targets.forEach(t => { if (t.is_modified && t.local_exists) totalModified++; });
+
+      const badge = document.getElementById('sync-count-badge');
+      if (totalModified > 0) {
+        badge.innerText = totalModified;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+
+      const pill = document.getElementById('sync-summary-pill');
+      if (pill) {
+        if (totalModified > 0) {
+          pill.className = 'gateway-pill unhealthy';
+          pill.innerHTML = `🟡 ${totalModified} project${totalModified > 1 ? 's' : ''} have unsynced changes`;
+        } else {
+          pill.className = 'gateway-pill healthy';
+          pill.innerHTML = `🟢 All ${targets.length} projects synced`;
+        }
+      }
+
+      if (showToastFeedback) {
+        showToast(`Scan complete: ${totalModified} modified projects detected.`);
+      }
+    } catch(e) {
+      console.error(e);
+      if (showToastFeedback) showToast('Failed to scan projects');
+    }
+  }
+
+  function renderSyncCards(targets) {
+    const container = document.getElementById('sync-projects-list');
+    if (!container) return;
+
+    if (!Array.isArray(targets) || targets.length === 0) {
+      container.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 50px 20px; color: var(--text-muted);">
+          <div style="font-size: 28px; margin-bottom: 8px;">📂</div>
+          <div style="font-size: 15px; font-weight: 600; color: #cbd5e1;">No project mappings configured yet</div>
+          <p style="font-size: 12px; margin-top: 6px;">Click <b>➕ Add Project Mapping</b> above to link a local folder with a virtual machine.</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = targets.map(target => {
+      let statusBadge = '';
+      let isModified = false;
+
+      if (!target.local_exists) {
+        statusBadge = '<span class="sync-badge-missing">🔴 Local Folder Missing</span>';
+      } else if (target.is_modified) {
+        isModified = true;
+        statusBadge = `<span class="sync-badge-dirty">🟡 ${target.modified_count} file${target.modified_count > 1 ? 's' : ''} modified</span>`;
+      } else if (target.last_synced_at) {
+        statusBadge = '<span class="sync-badge-clean">🟢 Up to date</span>';
+      } else {
+        statusBadge = '<span class="sync-badge-never">⚪ Not synced yet</span>';
+      }
+
+      const lastSyncText = target.last_synced_at 
+        ? `${target.last_synced_at} (${target.last_sync_files} files)`
+        : 'Never synced';
+
+      const postCmdTag = target.post_sync_cmd 
+        ? `<div style="font-size: 11px; color: #a5b4fc; font-family: 'JetBrains Mono'; margin-top: 2px;">⚡ Post-Sync: <code>${target.post_sync_cmd}</code></div>`
+        : '';
+
+      return `
+        <div class="sync-card ${isModified ? 'is-modified-card' : ''}">
+          <div class="sync-card-header">
+            <div class="sync-card-title">
+              <span>🚀</span>
+              <span>${target.name}</span>
+              <span class="gateway-pill healthy" style="font-size: 11px;">🐧 ${target.vm_name}</span>
+            </div>
+            <div>${statusBadge}</div>
+          </div>
+
+          <div class="sync-paths-group">
+            <div class="sync-path-row">
+              <span class="sync-path-label">HOST:</span>
+              <span class="sync-path-val" title="${target.local_path}">${target.local_path}</span>
+              <button class="btn" style="padding: 2px 7px; font-size: 11px;" onclick="openProjectExplorer('${target.id}')">📂 Open</button>
+            </div>
+            <div class="sync-path-row">
+              <span class="sync-path-label">TARGET:</span>
+              <span class="sync-path-val" title="${target.vm_name}:${target.remote_path}">${target.remote_path}</span>
+              <span style="font-size: 10px; color: var(--text-muted);">EXTRACT</span>
+            </div>
+          </div>
+
+          ${postCmdTag}
+
+          <div class="sync-meta-row">
+            <span>Last Synced: <b style="color: #cbd5e1;">${lastSyncText}</b></span>
+            ${target.latest_mod_time ? `<span>Latest Edit: <b style="color: #fcd34d;">${target.latest_mod_time}</b></span>` : ''}
+          </div>
+
+          <div class="sync-card-actions">
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-restore-all" style="font-weight: 700; ${isModified ? 'box-shadow: 0 0 14px rgba(16, 185, 129, 0.4);' : ''}" onclick="pushSingleTarget('${target.id}', '${target.name}')">
+                🚀 Push to ${target.vm_name}
+              </button>
+              ${target.modified_count > 0 ? `
+                <button class="btn" style="font-size: 11px;" onclick="viewChangedFiles('${target.id}', '${target.name}')">
+                  🔍 Changed (${target.modified_count})
+                </button>
+              ` : ''}
+            </div>
+
+            <div style="display: flex; gap: 6px;">
+              <button class="btn" style="padding: 5px 8px; font-size: 11px;" onclick="openEditSyncModal('${target.id}')">✏️ Edit</button>
+              <button class="btn btn-danger" style="padding: 5px 8px; font-size: 11px;" onclick="deleteSyncTarget('${target.id}', '${target.name}')">🗑️</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function pushSingleTarget(id, name) {
+    showToast(`Packaging and pushing ${name} to VM...`);
+    try {
+      const res = await fetch(`/api/sync/push?id=${encodeURIComponent(id)}`, { method: 'POST' });
+      if (res.ok) {
+        showToast(`Sync started for ${name}!`);
+        checkJobs();
+        setTimeout(() => fetchSyncTargets(false), 2500);
+      } else {
+        const err = await res.json();
+        showToast('Sync error: ' + (err.error || 'Failed'));
+      }
+    } catch(e) {
+      showToast('Network error triggering sync');
+    }
+  }
+
+  async function syncAllModifiedProjects() {
+    showToast('Triggering batch sync for all modified projects...');
+    try {
+      const res = await fetch('/api/sync/push-all', { method: 'POST' });
+      const data = await res.json();
+      if (data.count === 0) {
+        showToast('All projects are already up to date!');
+      } else {
+        showToast(`Started sync for ${data.count} projects!`);
+        checkJobs();
+        setTimeout(() => fetchSyncTargets(false), 3000);
+      }
+    } catch(e) {
+      showToast('Failed to trigger batch sync');
+    }
+  }
+
+  async function openProjectExplorer(id) {
+    try {
+      await fetch(`/api/sync/open-folder?id=${encodeURIComponent(id)}`, { method: 'POST' });
+    } catch(e) {}
+  }
+
+  async function deleteSyncTarget(id, name) {
+    if (!confirm(`Are you sure you want to remove project mapping "${name}"?`)) return;
+    try {
+      const res = await fetch(`/api/sync/delete?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (res.ok) {
+        showToast(`Mapping "${name}" removed`);
+        fetchSyncTargets(false);
+      }
+    } catch(e) {
+      showToast('Failed to delete mapping');
+    }
+  }
+
+  /* Modals Logic */
+  function openAddSyncModal() {
+    document.getElementById('sync-modal-title').innerText = 'Add Project Mapping';
+    document.getElementById('sync-modal-id').value = '';
+    document.getElementById('sync-modal-name').value = '';
+    document.getElementById('sync-modal-local').value = '';
+    document.getElementById('sync-modal-remote').value = '';
+    document.getElementById('sync-modal-excludes').value = 'node_modules, .git, vendor, .env, .next, dist, build, .venv, __pycache__, cache, tmp, .idea, .vscode, storage/framework, storage/logs';
+    document.getElementById('sync-modal-cmd').value = '';
+
+    updateManualVMDropdown();
+    document.getElementById('sync-modal').classList.add('active');
+  }
+
+  function openEditSyncModal(id) {
+    const target = cachedSyncTargets.find(t => t.id === id);
+    if (!target) return;
+
+    document.getElementById('sync-modal-title').innerText = 'Edit Project Mapping';
+    document.getElementById('sync-modal-id').value = target.id;
+    document.getElementById('sync-modal-name').value = target.name || '';
+    document.getElementById('sync-modal-local').value = target.local_path || '';
+    document.getElementById('sync-modal-remote').value = target.remote_path || '';
+    document.getElementById('sync-modal-excludes').value = target.excludes || '';
+    document.getElementById('sync-modal-cmd').value = target.post_sync_cmd || '';
+
+    updateManualVMDropdown();
+    const sel = document.getElementById('sync-modal-vm');
+    if (sel) sel.value = target.vm_name || '';
+
+    document.getElementById('sync-modal').classList.add('active');
+  }
+
+  function closeSyncModal() {
+    document.getElementById('sync-modal').classList.remove('active');
+  }
+
+  async function saveSyncModal() {
+    const id = document.getElementById('sync-modal-id').value.trim();
+    const name = document.getElementById('sync-modal-name').value.trim();
+    const vm_name = document.getElementById('sync-modal-vm').value.trim();
+    const local_path = document.getElementById('sync-modal-local').value.trim();
+    const remote_path = document.getElementById('sync-modal-remote').value.trim();
+    const excludes = document.getElementById('sync-modal-excludes').value.trim();
+    const post_sync_cmd = document.getElementById('sync-modal-cmd').value.trim();
+
+    if (!name || !vm_name || !local_path) {
+      showToast('Please fill in Name, VM, and Local Folder');
+      return;
+    }
+
+    showToast('Saving mapping...');
+    try {
+      const res = await fetch('/api/sync/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          name,
+          vm_name,
+          local_path,
+          remote_path: remote_path || `/home/ubuntu/${name}`,
+          excludes,
+          post_sync_cmd
+        })
+      });
+
+      if (res.ok) {
+        showToast(`Project mapping "${name}" saved!`);
+        closeSyncModal();
+        fetchSyncTargets(false);
+      } else {
+        const err = await res.json();
+        showToast('Error: ' + (err.error || 'Failed to save'));
+      }
+    } catch(e) {
+      showToast('Network error saving mapping');
+    }
+  }
+
+  async function viewChangedFiles(id, name) {
+    currentPreviewTargetId = id;
+    document.getElementById('files-modal-title').innerText = `Modified Files: ${name}`;
+    document.getElementById('files-modal-content').innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted);">Inspecting file changes...</div>';
+    document.getElementById('files-modal').classList.add('active');
+
+    try {
+      const res = await fetch(`/api/sync/changed-files?id=${encodeURIComponent(id)}`);
+      const files = await res.json();
+
+      if (!Array.isArray(files) || files.length === 0) {
+        document.getElementById('files-modal-content').innerHTML = '<div style="padding: 20px; text-align: center; color: #34d399;">All files are up to date!</div>';
+        return;
+      }
+
+      document.getElementById('files-modal-sub').innerText = `${files.length} file(s) modified since last sync`;
+      document.getElementById('files-modal-content').innerHTML = files.map(f => {
+        const kb = (f.size / 1024).toFixed(1);
+        return `
+          <div class="changed-file-row">
+            <span style="color: #cbd5e1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 440px;" title="${f.path}">📄 ${f.path}</span>
+            <span style="color: var(--text-muted); font-size: 11px;">${kb} KB &nbsp;|&nbsp; ${f.mod_time}</span>
+          </div>
+        `;
+      }).join('');
+    } catch(e) {
+      document.getElementById('files-modal-content').innerHTML = '<div style="padding: 20px; text-align: center; color: var(--danger);">Failed to inspect files</div>';
+    }
+  }
+
+  function closeFilesModal() {
+    document.getElementById('files-modal').classList.remove('active');
+    currentPreviewTargetId = null;
+  }
+
+  function pushFromFilesModal() {
+    if (!currentPreviewTargetId) return;
+    const target = cachedSyncTargets.find(t => t.id === currentPreviewTargetId);
+    const targetName = target ? target.name : 'Project';
+    closeFilesModal();
+    pushSingleTarget(currentPreviewTargetId, targetName);
+  }
+
+  /* Shared Background Jobs Monitor */
   async function checkJobs() {
     try {
       const res = await fetch('/api/backup/jobs');
@@ -1190,8 +1970,8 @@
 
       if (runningJob) {
         bar.style.display = 'flex';
-        document.getElementById('jobs-msg').innerText = `⏳ ${runningJob.VMName}: ${runningJob.Message}`;
-        document.getElementById('jobs-meta').innerText = `Started: ${runningJob.StartedAt}`;
+        document.getElementById('jobs-msg').innerText = `⏳ ${runningJob.vm_name}: ${runningJob.message}`;
+        document.getElementById('jobs-meta').innerText = `Started: ${runningJob.started_at}`;
       } else {
         bar.style.display = 'none';
       }
@@ -1222,6 +2002,9 @@
         renderIPTable();
         updateManualVMDropdown();
       }
+
+      // Background check sync targets status
+      fetchSyncTargets(false);
     } catch (e) {
       console.error(e);
     }
